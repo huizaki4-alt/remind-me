@@ -190,7 +190,7 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
         </div>
       </div>
     </div>
-    <p class="hint" style="text-align:center">版本 2026.10.16-4</p>
+    <p class="hint" style="text-align:center">版本 2026.10.16-5</p>
   </section>
 </div>
 
@@ -379,6 +379,7 @@ function toCanvas(src){
   const cv=document.createElement("canvas");
   cv.width=Math.round(sw*scale);cv.height=Math.round(sh*scale);
   const ctx=cv.getContext("2d",{willReadFrequently:true});
+  ctx.imageSmoothingQuality="high";
   ctx.drawImage(img,sx,sy,sw,sh,0,0,cv.width,cv.height);
   binarize(ctx,cv.width,cv.height);
   return cv;
@@ -512,35 +513,79 @@ function segments(cv,dir,src){
   return dir==="v"?segs.reverse():segs;   // 直排由右至左
 }
 const SEG_VARIANTS=[[55,.12],[65,.18],[70,.15],[75,.12],[85,.18]];  // [字大小px, 黑白化門檻]
-// 逐行讀：用五種字大小／黑白化各讀一次，逐隻字投票
-async function readSegment([a,b,e0,e1],dir,R){
-  const img=R.el,thick=b-a,pad=thick*.3;
+// 高質素縮放：一次縮太多 Safari 會失真，所以每次最多縮一半
+function drawScaled(img,sx,sy,sw,sh,W,H){
+  let cur=img,cx=sx,cy=sy,cw=sw,ch=sh;
+  while(cw/2>W&&ch/2>H){
+    const t=document.createElement("canvas");t.width=Math.ceil(cw/2);t.height=Math.ceil(ch/2);
+    const g=t.getContext("2d");g.imageSmoothingQuality="high";g.drawImage(cur,cx,cy,cw,ch,0,0,t.width,t.height);
+    if(cur!==img)cur.width=cur.height=0;
+    cur=t;cx=cy=0;cw=t.width;ch=t.height;
+  }
+  const cv=document.createElement("canvas");cv.width=W;cv.height=H;
+  const ctx=cv.getContext("2d",{willReadFrequently:true});ctx.imageSmoothingQuality="high";
+  ctx.drawImage(cur,cx,cy,cw,ch,0,0,W,H);
+  if(cur!==img)cur.width=cur.height=0;
+  return cv;
+}
+// 切出一行（或一直行），放大到每隻字約 px，再黑白化
+function stripCanvas([a,b,e0,e1],dir,R,px,t){
+  const thick=b-a,pad=thick*.3;
   let sx,sy,sw,sh;
   if(dir==="v"){sx=R.sx+Math.max(0,a-pad);sw=Math.min(R.sx+R.sw,R.sx+b+pad)-sx;sy=R.sy+e0;sh=e1-e0}
   else{sy=R.sy+Math.max(0,a-pad);sh=Math.min(R.sy+R.sh,R.sy+b+pad)-sy;sx=R.sx+e0;sw=e1-e0}
-  const cands=[];
-  for(const [px,t] of SEG_VARIANTS){
-    const s=Math.min(4,Math.max(.3,px/thick));
-    const cv=document.createElement("canvas");
-    cv.width=Math.max(1,Math.round(sw*s));cv.height=Math.max(1,Math.min(6000,Math.round(sh*s)));
-    const ctx=cv.getContext("2d",{willReadFrequently:true});
-    ctx.drawImage(img,sx,sy,sw,sh,0,0,cv.width,cv.height);
-    binarize(ctx,cv.width,cv.height,t);
-    cands.push(await recognize(cv,dir,dir==="v"?"5":"7"));
-    cv.width=cv.height=0;
+  const s=Math.min(4,Math.max(.3,px/thick));
+  const cv=drawScaled(R.el,sx,sy,sw,sh,Math.max(1,Math.round(sw*s)),Math.max(1,Math.min(6000,Math.round(sh*s))));
+  binarize(cv.getContext("2d",{willReadFrequently:true}),cv.width,cv.height,t);
+  return cv;
+}
+// 直行切成一隻隻字，再橫住排成一行，俾橫排模型再讀一次（兩個模型錯嘅字唔同，可以互補）
+function cellsToLine(cv,P){
+  const W=cv.width,H=cv.height,d=cv.getContext("2d").getImageData(0,0,W,H).data,row=new Uint16Array(H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(d[(y*W+x)<<2]<128)row[y]++;
+  const runs=[];let st=-1;
+  for(let y=0;y<=H;y++){const k=y<H&&row[y]>0;if(k&&st<0)st=y;if(!k&&st>=0){runs.push([st,y]);st=-1}}
+  const cells=[];
+  for(const r of runs){const c=cells[cells.length-1];if(c&&r[1]-c[0]<=P*1.12)c[1]=r[1];else cells.push([r[0],r[1]])}
+  if(!cells.length||cells.length>200)return null;
+  const gap=Math.round(P*.25),lh=Math.round(P*1.6);
+  const L=document.createElement("canvas");L.width=cells.length*(P+gap)+gap;L.height=lh;
+  const g=L.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,L.width,lh);
+  let x=gap;
+  for(const [y0,y1] of cells){const h=y1-y0;g.drawImage(cv,0,y0,W,h,x+Math.round((P-W)/2),Math.round((lh-h)/2),W,h);x+=P+gap}
+  return L;
+}
+// 對齊兩串字（編輯距離），回傳 A 每個位置對應 B 嘅位置（冇就 -1）
+function alignSyms(A,B){
+  const n=A.length,m=B.length,D=[];
+  for(let i=0;i<=n;i++){D.push(new Uint16Array(m+1));D[i][0]=i}
+  for(let j=0;j<=m;j++)D[0][j]=j;
+  for(let i=1;i<=n;i++)for(let j=1;j<=m;j++)
+    D[i][j]=Math.min(D[i-1][j]+1,D[i][j-1]+1,D[i-1][j-1]+(A[i-1][0]===B[j-1][0]?0:1));
+  const map=new Int32Array(n).fill(-1);let i=n,j=m;
+  while(i>0&&j>0){
+    if(D[i][j]===D[i-1][j-1]+(A[i-1][0]===B[j-1][0]?0:1)){map[i-1]=j-1;i--;j--}
+    else if(D[i][j]===D[i-1][j]+1)i--;else j--;
   }
-  const lens={};for(const c of cands)lens[c.syms.length]=(lens[c.syms.length]||0)+1;
-  const L=+Object.entries(lens).sort((x,y)=>y[1]-x[1]||y[0]-x[0])[0][0];
-  const same=cands.filter(c=>c.syms.length===L);
-  const conf=same.reduce((t,c)=>t+c.conf,0)/(same.length||1);
-  if(!L||same.length<2){const c=cands.slice().sort((x,y)=>y.conf-x.conf)[0];return{text:c.text,conf:c.conf}}
-  const picks=[];
-  for(let i=0;i<L;i++){
-    const tally={};let starts=0;
-    for(const c of same){const [ch,cf,ws]=c.syms[i];tally[ch]=(tally[ch]||0)+cf+20;if(ws)starts++}
-    const [ch,tot]=Object.entries(tally).sort((x,y)=>y[1]-x[1])[0];
-    picks.push({ch,conf:tot/same.length-20,ws:starts*2>same.length});
+  return map;
+}
+// 綜合所有讀法：揀最可信嗰個做骨幹，其他對齊之後逐隻字投票
+function vote(cands){
+  cands=cands.filter(c=>c.syms.length);
+  if(!cands.length)return{text:"",conf:0};
+  const base=cands.slice().sort((x,y)=>y.conf-x.conf)[0],B=base.syms;
+  const tallies=B.map(()=>({})),starts=new Uint16Array(B.length);
+  for(const c of cands){
+    const map=c===base?B.map((_,i)=>i):alignSyms(B,c.syms);
+    for(let i=0;i<B.length;i++){
+      if(map[i]<0)continue;const [ch,cf,ws]=c.syms[map[i]];
+      tallies[i][ch]=(tallies[i][ch]||0)+cf+20;if(ws)starts[i]++;
+    }
   }
+  const picks=B.map((_,i)=>{
+    const [ch,tot]=Object.entries(tallies[i]).sort((x,y)=>y[1]-x[1])[0];
+    return{ch,conf:tot/cands.length-20,ws:starts[i]*2>cands.length};
+  });
   // 頭尾信心低或者係怪符號（多數係紙邊、陰影）就刪走
   const junk=p=>p.conf<35||/^[_|\[\]{}~^`=<>]+$/.test(p.ch);
   while(picks.length&&junk(picks[0]))picks.shift();
@@ -551,7 +596,31 @@ async function readSegment([a,b,e0,e1],dir,R){
     if(text&&p.ws&&/[A-Za-z0-9]$/.test(text)&&/^[A-Za-z0-9]/.test(p.ch))text+=" ";
     text+=p.ch;
   }
+  const conf=cands.reduce((t,c)=>t+c.conf,0)/cands.length;
   return{text:tidy(text),conf};
+}
+// 逐行精讀：每行用幾種字大小／黑白化讀；直排再加橫排模型讀，最後投票
+async function refine(segs,dir,R,step){
+  const cands=segs.map(()=>[]),rounds=dir==="v"?2:1;
+  for(let i=0;i<segs.length;i++){
+    step(i,segs.length*rounds);
+    for(const [px,t] of SEG_VARIANTS){
+      const cv=stripCanvas(segs[i],dir,R,px,t);
+      cands[i].push(await recognize(cv,dir,dir==="v"?"5":"7"));
+      cv.width=cv.height=0;
+    }
+  }
+  if(dir==="v"){   // 第二輪：換橫排模型（一次過換，慳時間）
+    for(let i=0;i<segs.length;i++){
+      step(segs.length+i,segs.length*2);
+      for(const t of [.12,.15,.2]){
+        const cv=stripCanvas(segs[i],"v",R,70,t),line=cellsToLine(cv,70);
+        if(line){cands[i].push(await recognize(line,"h","7"));line.width=line.height=0}
+        cv.width=cv.height=0;
+      }
+    }
+  }
+  return cands.map(vote);
 }
 // 揀相 → 顯示預覽，可以拉框揀範圍
 function openPhoto(inp){
@@ -596,14 +665,11 @@ async function runOcr(){
       segs=segments(cv,best.dir,src);
     }
     if(segs){
-      const out=[];let confSum=0;
-      for(let i=0;i<segs.length;i++){
-        segMode=true;prog.value=i/segs.length;
-        st.textContent="精讀緊第 "+(i+1)+"/"+segs.length+(best.dir==="v"?" 直行":" 行")+"…";
-        const r=await readSegment(segs[i],best.dir,src);
-        if(r.text){out.push(r.text);confSum+=r.conf}
-      }
+      segMode=true;
+      const res=await refine(segs,best.dir,src,(i,n)=>{prog.value=i/n;st.textContent="精讀緊… "+Math.round(100*i/n)+"%"});
       segMode=false;
+      const out=[];let confSum=0;
+      for(const r of res)if(r.text){out.push(r.text);confSum+=r.conf}
       const conf=out.length?confSum/out.length:0;
       if(out.length&&conf>=best.conf-5){
         const text=tidy(out.join("\n"));
