@@ -1,0 +1,36 @@
+name: 隨機卡通知
+
+# 香港時間 9am–10pm 每個鐘檢查一次，每次有 CHANCE 機會推送 → 每日大約 3–5 張，時間唔固定。
+# GitHub 免費額度內運行，唔會收費。
+on:
+  schedule:
+    - cron: "17 1-14 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "即刻推送一次（唔理機率）"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: push
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --no-audit --no-fund
+        working-directory: push
+      - run: node send.js
+        working-directory: push
+        env:
+          PUSH_CONFIG: ${{ secrets.PUSH_CONFIG }}
+          CHANCE: "0.3"
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
