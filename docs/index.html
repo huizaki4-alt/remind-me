@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>知識抽卡</title>
+<meta name="description" content="記低想記住嘅嘢，隨機抽一張重溫。">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="知識抽卡">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#EEF0EC" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#14181E" media="(prefers-color-scheme: dark)">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one parchment card centred on a desk; tabs switch between 抽卡 / 加卡 / 全部 / 設定 */
+:root{
+  --desk:#EEF0EC; --card:#FFFFFF; --redline:#C8463D;
+  --ink:#1F2733; --muted:#66707D; --accent:#2B4C7E; --accent-ink:#FFFFFF; --line:#D9DDE2;
+  --parch:#EEDDB8; --parch-edge:rgba(130,82,28,.38); --parch-ink:#3A2814; --parch-muted:#7A5F3E;
+  --f-card:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --f-ui:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --desk:#14181E; --card:#1E242C; --redline:#D26A60;
+  --ink:#E7EAEE; --muted:#9AA4B1; --accent:#8FB0E3; --accent-ink:#111722; --line:#323A45;
+  --parch:#CDB68A; --parch-edge:rgba(70,40,10,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --desk:#14181E; --card:#1E242C; --redline:#D26A60;
+  --ink:#E7EAEE; --muted:#9AA4B1; --accent:#8FB0E3; --accent-ink:#111722; --line:#323A45;
+  --parch:#CDB68A; --parch-edge:rgba(70,40,10,.5); color-scheme:dark}
+[hidden]{display:none!important}
+html,body{background:var(--desk);color:var(--ink);margin:0}
+body{font-family:var(--f-ui);font-size:15px;-webkit-text-size-adjust:100%;
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px))}
+.wrap{max-width:560px;margin:0 auto;padding-block:16px 40px;display:flex;flex-direction:column;gap:16px}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+h1{font-family:var(--f-card);font-size:22px;margin:0;letter-spacing:.04em}
+h2{font-size:15px;margin:0}
+.count{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
+nav{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px;position:sticky;top:env(safe-area-inset-top,0px);z-index:2}
+nav button{flex:1;border:0;background:none;color:var(--muted);font:inherit;font-weight:500;padding:8px 4px;border-radius:7px;cursor:pointer}
+nav button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section{display:flex;flex-direction:column;gap:14px}
+
+/* 羊皮紙卡：冇橫線、冇日期 */
+.card{background-color:var(--parch);color:var(--parch-ink);border-radius:3px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .28 0 0 0 0 .1 0 0 0 .2 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='600'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.012' numOctaves='4' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .38 0 0 0 0 .15 0 0 0 .35 -.05'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+  background-size:220px 220px,cover;
+  box-shadow:inset 0 0 50px var(--parch-edge),inset 0 0 8px var(--parch-edge),0 1px 2px rgba(0,0,0,.12),0 10px 26px rgba(60,35,10,.14);
+  position:relative;padding:28px 22px 20px;min-height:260px;display:flex;flex-direction:column;gap:14px}
+.card .meta{font-size:12px;color:var(--parch-muted);letter-spacing:.04em;min-height:20px}
+.card .text{font-family:var(--f-card);font-size:19px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere;flex:1;margin-top:4px}
+.card.empty .text{font-family:var(--f-ui);font-size:15px;color:var(--parch-muted)}
+.card textarea{background:rgba(255,255,255,.35);border-color:var(--parch-edge);color:var(--parch-ink)}
+.card input[type=text]{background:rgba(255,255,255,.35);border-color:var(--parch-edge);color:var(--parch-ink)}
+
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:500;padding:11px 16px;border-radius:9px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);flex:1}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.danger,.btn.sure{color:var(--redline)}
+.btn.sure{border-color:var(--redline);font-weight:700}
+label.lab{font-size:12px;color:var(--muted);letter-spacing:.06em}
+textarea,input[type=text],input[type=search]{width:100%;box-sizing:border-box;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
+textarea{min-height:180px;font-family:var(--f-card);font-size:17px;line-height:1.8;resize:vertical}
+textarea.code{min-height:90px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.4;word-break:break-all}
+.field{display:flex;flex-direction:column;gap:6px}
+.status{font-size:13px;color:var(--muted);min-height:18px;line-height:1.5}
+.status.err{color:var(--redline)}
+progress{width:100%;height:6px;accent-color:var(--accent)}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.item .t{font-family:var(--f-card);line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.item .b{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.item .b button{border:0;background:none;font:inherit;font-size:14px;color:var(--accent);cursor:pointer;padding:6px 8px}
+.item .b button.sure{color:var(--redline);font-weight:700}
+.item .b .acts{white-space:nowrap}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.hint{font-size:13px;color:var(--muted);line-height:1.65;margin:0}
+.hint ol{margin:4px 0 0;padding-left:20px}
+@media (prefers-reduced-motion:no-preference){.card.flip{animation:flip .35s ease}@keyframes flip{from{transform:translateY(6px) rotate(-.6deg);opacity:.4}to{transform:none;opacity:1}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><h1>知識抽卡</h1><span class="count" id="count"></span></header>
+  <nav role="tablist">
+    <button role="tab" id="tab-draw" aria-selected="true">抽卡</button>
+    <button role="tab" id="tab-add" aria-selected="false">加卡</button>
+    <button role="tab" id="tab-all" aria-selected="false">全部</button>
+    <button role="tab" id="tab-set" aria-selected="false">設定</button>
+  </nav>
+
+  <!-- 抽卡 -->
+  <section id="v-draw">
+    <article class="card empty" id="card">
+      <div class="meta" id="c-src"></div>
+      <div class="text" id="c-text">載入緊…</div>
+    </article>
+    <div class="row" id="drawActs">
+      <button class="btn primary" id="again">再抽一張</button>
+      <button class="btn" id="drawEdit">修改</button>
+      <button class="btn danger" id="drawDel">刪除</button>
+    </div>
+  </section>
+
+  <!-- 加卡 -->
+  <section id="v-add" hidden>
+    <div class="row">
+      <button class="btn" id="photoBtn">📷 影相</button>
+      <button class="btn" id="albumBtn">🖼 相簿揀相</button>
+      <input type="file" id="photo" accept="image/*" capture="environment" hidden>
+      <input type="file" id="album" accept="image/*" hidden>
+    </div>
+    <progress id="ocrProg" max="1" value="0" hidden></progress>
+    <div class="status" id="ocrStatus"></div>
+    <div class="field"><label class="lab" for="txt">內容</label>
+      <textarea id="txt" placeholder="打低你想記住嘅嘢，或者影書頁自動轉文字"></textarea></div>
+    <div class="field"><label class="lab" for="src">出處（可留空）</label>
+      <input type="text" id="src" placeholder="例如：《原子習慣》p.112"></div>
+    <div class="row"><button class="btn primary" id="save">儲存</button><button class="btn" id="clearDraft">清除</button></div>
+    <div class="status" id="saveStatus"></div>
+    <p class="hint">相片只喺手機入面轉文字，唔會上載，轉完即刻丟棄，唔會儲存。第一次轉要下載辨識資料（約 16MB），之後離線都用得。</p>
+    <p class="hint">想更準：喺 iPhone「相片」App 長按相入面嘅字 →「拷貝」，再貼落上面。</p>
+  </section>
+
+  <!-- 全部 -->
+  <section id="v-all" hidden>
+    <input type="search" id="q" placeholder="搜尋">
+    <div class="list" id="list"></div>
+  </section>
+
+  <!-- 設定 -->
+  <section id="v-set" hidden>
+    <div class="panel" id="installPanel" hidden>
+      <h2>加到主畫面</h2>
+      <p class="hint">用 Safari 開呢頁 → 撳底部「分享」→「加至主畫面」。之後由主畫面圖示打開，先可以收通知。</p>
+    </div>
+
+    <div class="panel">
+      <h2>備份</h2>
+      <p class="hint">卡只存喺呢部手機。定期匯出備份，換機或者清咗資料都可以匯入返。</p>
+      <div class="row">
+        <button class="btn" id="exportBtn">匯出備份</button>
+        <button class="btn" id="importBtn">匯入備份</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+      </div>
+      <div class="status" id="backupStatus"></div>
+    </div>
+
+    <div class="panel">
+      <h2>隨機卡通知</h2>
+      <p class="hint">每日喺 9am 至 10pm 之間不定時推送一張隨機卡。由你自己 GitHub repo 嘅免費 Actions 負責發送，唔使錢。</p>
+      <div class="row">
+        <button class="btn primary" id="pushBtn">開啟通知</button>
+        <button class="btn" id="testBtn">試一試</button>
+      </div>
+      <div class="status" id="pushStatus"></div>
+      <div id="pushCfgBox" class="field" hidden>
+        <label class="lab" for="pushCfg">設定碼（只貼去 GitHub Secret，唔好公開）</label>
+        <textarea id="pushCfg" class="code" readonly></textarea>
+        <div class="row"><button class="btn" id="copyCfg">複製設定碼</button></div>
+        <div class="hint">最後一步（只做一次）：
+          <ol>
+            <li>喺 GitHub 開你個 repo →「Settings」→「Secrets and variables」→「Actions」</li>
+            <li>撳「New repository secret」，Name 填 <b>PUSH_CONFIG</b>，Secret 貼上設定碼，儲存</li>
+            <li>想即刻試：「Actions」→「隨機卡通知」→「Run workflow」</li>
+          </ol>
+          如果之後收唔到通知，返嚟呢度再撳「開啟通知」，再複製一次設定碼更新個 Secret。
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script src="db.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+let cards=[], current=null, editingList=null, draft={text:"",source:""};
+const isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+const standalone=navigator.standalone===true||matchMedia("(display-mode: standalone)").matches;
+
+// ---------- tabs ----------
+const views={draw:$("v-draw"),add:$("v-add"),all:$("v-all"),set:$("v-set")};
+function show(name){
+  for(const k in views){views[k].hidden=k!==name;$("tab-"+k).setAttribute("aria-selected",k===name)}
+  if(name==="all")renderList();
+  if(name==="set")refreshPush();
+}
+for(const k in views)$("tab-"+k).onclick=()=>show(k);
+
+// ---------- data ----------
+async function reload(){
+  cards=await ZDB.all();
+  $("count").textContent=cards.length+" 張";
+}
+function askPersist(){if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})}
+
+// 兩下確認刪除
+function confirmTap(btn,label,fn){
+  if(!btn.classList.contains("sure")){
+    btn.classList.add("sure");btn.textContent="確定刪除？";
+    clearTimeout(btn._t);btn._t=setTimeout(()=>{btn.classList.remove("sure");btn.textContent=label},3000);
+    return;
+  }
+  clearTimeout(btn._t);btn.classList.remove("sure");btn.textContent=label;fn();
+}
+
+// 修改表單（抽卡頁同全部頁共用）
+function editor(c,onDone){
+  const box=document.createElement("div");box.className="field";
+  const ta=document.createElement("textarea");ta.value=draft.text;ta.oninput=()=>draft.text=ta.value;ta.setAttribute("aria-label","內容");
+  const si=document.createElement("input");si.type="text";si.placeholder="出處（可留空）";si.value=draft.source;si.oninput=()=>draft.source=si.value;si.setAttribute("aria-label","出處");
+  const r=document.createElement("div");r.className="row";
+  const ok=document.createElement("button");ok.className="btn primary";ok.textContent="儲存修改";
+  const no=document.createElement("button");no.className="btn";no.textContent="取消";
+  no.onclick=()=>onDone(false);
+  ok.onclick=async()=>{
+    const text=draft.text.trim();if(!text){ok.textContent="內容不可以空";return}
+    ok.disabled=true;
+    try{await ZDB.put({...c,text,source:draft.source.trim(),updatedAt:Date.now()});await reload();onDone(true)}
+    catch(e){ok.disabled=false;ok.textContent="儲存唔到，再試"}
+  };
+  r.append(ok,no);box.append(ta,si,r);
+  return box;
+}
+
+// ---------- 抽卡 ----------
+function paint(c){
+  const card=$("card");
+  $("drawActs").hidden=false;
+  if(!c){
+    current=null;card.classList.add("empty");$("c-src").textContent="";
+    $("c-text").textContent="未有卡。去「加卡」影相或者打字，加咗之後呢度會隨機抽一張俾你睇。";
+    $("again").disabled=true;$("drawEdit").hidden=true;$("drawDel").hidden=true;return;
+  }
+  current=c.id;
+  card.classList.remove("empty","flip");void card.offsetWidth;card.classList.add("flip");
+  $("c-text").textContent=c.text;$("c-src").textContent=c.source||"";
+  $("again").disabled=cards.length<2;$("drawEdit").hidden=false;$("drawDel").hidden=false;
+}
+function draw(){
+  if(!cards.length)return paint(null);
+  const pool=cards.length>1?cards.filter(c=>c.id!==current):cards;
+  paint(pool[Math.floor(Math.random()*pool.length)]);
+}
+function showCard(id){
+  const c=cards.find(x=>x.id===id);
+  show("draw");c?paint(c):draw();
+}
+$("again").onclick=draw;
+$("drawEdit").onclick=()=>{
+  const c=cards.find(x=>x.id===current);if(!c)return;
+  draft={text:c.text||"",source:c.source||""};
+  $("drawActs").hidden=true;
+  const card=$("card");card.classList.remove("flip");
+  $("c-src").textContent="";$("c-text").textContent="";
+  $("c-text").append(editor(c,()=>{const n=cards.find(x=>x.id===c.id);paint(n||null)}));
+};
+$("drawDel").onclick=()=>confirmTap($("drawDel"),"刪除",async()=>{
+  if(!current)return;
+  await ZDB.remove(current);await reload();current=null;draw();
+});
+
+// ---------- 全部 ----------
+function renderList(){
+  const q=$("q").value.trim().toLowerCase();
+  const list=$("list");list.textContent="";
+  const rows=cards.filter(c=>!q||(c.text+" "+(c.source||"")).toLowerCase().includes(q)).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+  if(!rows.length){const p=document.createElement("p");p.className="hint";p.textContent=cards.length?"搵唔到。":"未有卡。";list.append(p);return}
+  for(const c of rows){
+    const it=document.createElement("div");it.className="item";
+    if(c.id===editingList){
+      it.append(editor(c,()=>{editingList=null;renderList()}));list.append(it);continue;
+    }
+    const t=document.createElement("div");t.className="t";t.textContent=c.text;
+    t.onclick=()=>showCard(c.id);
+    const b=document.createElement("div");b.className="b";
+    const m=document.createElement("span");m.textContent=c.source||"";
+    const acts=document.createElement("span");acts.className="acts";
+    const ed=document.createElement("button");ed.textContent="修改";
+    ed.onclick=()=>{editingList=c.id;draft={text:c.text||"",source:c.source||""};renderList()};
+    const del=document.createElement("button");del.textContent="刪除";
+    del.onclick=()=>confirmTap(del,"刪除",async()=>{
+      await ZDB.remove(c.id);await reload();
+      if(current===c.id){current=null;draw()}
+      renderList();
+    });
+    acts.append(ed,del);b.append(m,acts);it.append(t,b);list.append(it);
+  }
+}
+$("q").oninput=renderList;
+
+// ---------- 加卡 ----------
+$("save").onclick=async()=>{
+  const text=$("txt").value.trim();const st=$("saveStatus");st.className="status";
+  if(!text){st.textContent="未有內容。";return}
+  $("save").disabled=true;
+  try{
+    const c={id:ZDB.newId(),text,source:$("src").value.trim(),createdAt:Date.now()};
+    await ZDB.put(c);await reload();askPersist();
+    $("txt").value="";$("src").value="";$("ocrStatus").textContent="";st.textContent="已儲存。";
+    if(cards.length===1)paint(c);
+  }catch(e){st.className="status err";st.textContent="儲存唔到："+(e&&e.name==="QuotaExceededError"?"手機空間不足。":"再試一次。")}
+  $("save").disabled=false;
+};
+$("clearDraft").onclick=()=>{$("txt").value="";$("src").value="";$("saveStatus").textContent="";$("ocrStatus").textContent=""};
+
+// ---------- 相片 → 文字（全部喺手機入面做，免費、唔上載） ----------
+const base=new URL("./",location.href).href;
+let ocrWorker=null, ocrBusy=false;
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("load"));document.head.append(s)})}
+const stageText={"loading tesseract core":"載入辨識程式","initializing tesseract":"準備緊","loading language traineddata":"下載辨識資料","initializing api":"準備緊","recognizing text":"辨識緊"};
+async function getWorker(){
+  if(ocrWorker)return ocrWorker;
+  if(!window.Tesseract)await loadScript("vendor/tesseract/tesseract.min.js");
+  ocrWorker=await Tesseract.createWorker(["chi_tra","eng"],1,{
+    workerPath:base+"vendor/tesseract/worker.min.js",
+    corePath:base+"vendor/tesseract",
+    langPath:base+"vendor/tessdata",
+    workerBlobURL:false,
+    logger:m=>{
+      const p=$("ocrProg");p.hidden=false;p.value=m.progress||0;
+      $("ocrStatus").textContent=(stageText[m.status]||"處理緊")+"…";
+    },
+  });
+  await ocrWorker.setParameters({preserve_interword_spaces:"1"});
+  return ocrWorker;
+}
+// 縮細 + 轉灰階，快啲又準啲；畫完即刻清走
+async function toCanvas(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=url});
+    const max=2200,scale=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
+    const cv=document.createElement("canvas");
+    cv.width=Math.round(img.naturalWidth*scale);cv.height=Math.round(img.naturalHeight*scale);
+    const ctx=cv.getContext("2d",{willReadFrequently:true});
+    ctx.filter="grayscale(1) contrast(1.25)";
+    ctx.drawImage(img,0,0,cv.width,cv.height);
+    img.src="";
+    return cv;
+  }finally{URL.revokeObjectURL(url)}
+}
+const CJK="\\u2E80-\\u9FFF\\uF900-\\uFAFF\\uFF00-\\uFFEF\\u3000-\\u303F";
+function tidy(raw){
+  const cjkGap=new RegExp("(["+CJK+"])[ \\t]+(?=["+CJK+"])","g");
+  const paras=raw.replace(/\r/g,"").split(/\n\s*\n/);
+  return paras.map(p=>{
+    const lines=p.split("\n").map(l=>l.replace(cjkGap,"$1").trim()).filter(Boolean);
+    let out="";
+    for(const l of lines){
+      if(!out){out=l;continue}
+      const a=out.slice(-1),b=l[0];
+      const cjk=new RegExp("["+CJK+"]");
+      out+=(cjk.test(a)||cjk.test(b))?l:(a==="-"?(out=out.slice(0,-1),l):" "+l);
+    }
+    // 中文旁邊嘅半形標點轉返全形
+    const full={",":"，",";":"；",":":"：","?":"？","!":"！","(":"（",")":"）"};
+    return out.replace(new RegExp("(["+CJK+"])\\s*([,;:?!()])\\s*","g"),(m,a,p)=>a+full[p])
+              .replace(new RegExp("\\s*([,;:?!()])\\s*(?=["+CJK+"])","g"),(m,p)=>full[p]);
+  }).filter(Boolean).join("\n\n");
+}
+async function ocr(inp){
+  let f=inp.files[0];inp.value="";if(!f||ocrBusy)return;
+  const st=$("ocrStatus"),prog=$("ocrProg");st.className="status";
+  ocrBusy=true;$("photoBtn").disabled=true;$("albumBtn").disabled=true;
+  st.textContent="準備緊…";prog.hidden=false;prog.value=0;
+  let cv=null;
+  try{
+    cv=await toCanvas(f);f=null;
+    const w=await getWorker();
+    const {data}=await w.recognize(cv);
+    const text=tidy(data.text||"");
+    if(!text){st.className="status err";st.textContent="睇唔到文字，試下影清啲、正啲。";}
+    else{
+      $("txt").value=($("txt").value.trim()?$("txt").value.trim()+"\n\n":"")+text;
+      st.textContent=data.confidence<55?"轉好咯，但張相唔係好清楚，記得核對再改。":"轉好咯，睇一睇、改一改再儲存。";
+    }
+  }catch(e){
+    st.className="status err";st.textContent="轉唔到，再試一次或者手打。";
+    if(ocrWorker){try{await ocrWorker.terminate()}catch(_){}ocrWorker=null}
+  }finally{
+    if(cv){cv.width=0;cv.height=0;cv=null}
+    prog.hidden=true;ocrBusy=false;
+    $("photoBtn").disabled=false;$("albumBtn").disabled=false;
+  }
+}
+$("photoBtn").onclick=()=>$("photo").click();
+$("albumBtn").onclick=()=>$("album").click();
+$("photo").onchange=()=>ocr($("photo"));
+$("album").onchange=()=>ocr($("album"));
+
+// ---------- 備份 ----------
+function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+$("exportBtn").onclick=async()=>{
+  const st=$("backupStatus");st.className="status";
+  await reload();
+  const json=JSON.stringify({app:"zhishi",version:1,exportedAt:Date.now(),cards},null,1);
+  const name="知識抽卡備份-"+today()+".json";
+  const file=new File([json],name,{type:"application/json"});
+  try{
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:name});
+    }else{
+      const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=name;
+      document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+    }
+    st.textContent="已匯出 "+cards.length+" 張卡。iPhone 可以揀「儲存到檔案」或者傳俾自己。";
+  }catch(e){
+    if(e&&e.name==="AbortError")st.textContent="已取消。";
+    else{st.className="status err";st.textContent="匯出唔到，再試一次。"}
+  }
+};
+$("importBtn").onclick=()=>$("importFile").click();
+$("importFile").onchange=async()=>{
+  const inp=$("importFile"),f=inp.files[0];inp.value="";if(!f)return;
+  const st=$("backupStatus");st.className="status";
+  try{
+    const data=JSON.parse(await f.text());
+    const incoming=Array.isArray(data)?data:data&&data.cards;
+    if(!Array.isArray(incoming))throw new Error("format");
+    await reload();
+    const byId=new Map(cards.map(c=>[c.id,c])),texts=new Set(cards.map(c=>c.text.trim()));
+    const add=[];let skip=0;
+    for(const x of incoming){
+      const text=typeof x.text==="string"?x.text.trim():"";
+      if(!text||texts.has(text)){skip++;continue}
+      let id=typeof x.id==="string"&&x.id?x.id:ZDB.newId();
+      if(byId.has(id))id=ZDB.newId();
+      const c={id,text,source:typeof x.source==="string"?x.source.trim():"",createdAt:Number(x.createdAt)||Date.now()};
+      add.push(c);texts.add(text);byId.set(id,c);
+    }
+    if(add.length)await ZDB.putMany(add);
+    await reload();askPersist();
+    if(!current)draw();
+    st.textContent="匯入咗 "+add.length+" 張"+(skip?"，略過 "+skip+" 張重複或空白":"")+"。";
+  }catch(e){st.className="status err";st.textContent="讀唔到呢個檔案，請揀由呢個 app 匯出嘅備份（.json）。"}
+};
+
+// ---------- 通知 ----------
+const b64u=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const unb64u=s=>{s=s.replace(/-/g,"+").replace(/_/g,"/");s+="===".slice((s.length+3)%4);return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
+async function vapidKeys(){
+  let k=await ZDB.getKV("vapid");
+  if(k)return k;
+  const kp=await crypto.subtle.generateKey({name:"ECDSA",namedCurve:"P-256"},true,["sign"]);
+  const pub=await crypto.subtle.exportKey("raw",kp.publicKey);
+  const jwk=await crypto.subtle.exportKey("jwk",kp.privateKey);
+  k={publicKey:b64u(pub),privateKey:jwk.d};
+  await ZDB.setKV("vapid",k);
+  return k;
+}
+function showCfg(sub,keys){
+  const cfg={subscription:sub.toJSON(),publicKey:keys.publicKey,privateKey:keys.privateKey,subject:location.origin};
+  $("pushCfg").value=btoa(unescape(encodeURIComponent(JSON.stringify(cfg))));
+  $("pushCfgBox").hidden=false;
+}
+function pushSupported(){return "serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window}
+async function refreshPush(){
+  $("installPanel").hidden=standalone;
+  const st=$("pushStatus");st.className="status";
+  if(!pushSupported()){
+    $("pushBtn").disabled=true;$("testBtn").disabled=true;
+    st.textContent=isIOS&&!standalone?"要先「加至主畫面」，再由主畫面圖示打開，先開到通知（需要 iOS 16.4 或以上）。":"呢個瀏覽器唔支援推送通知。";
+    return;
+  }
+  try{
+    const reg=await navigator.serviceWorker.ready;
+    const sub=await reg.pushManager.getSubscription();
+    const keys=await ZDB.getKV("vapid");
+    if(sub&&keys&&Notification.permission==="granted"){
+      st.textContent="通知已開啟。記得設定碼要貼咗去 GitHub。";$("pushBtn").textContent="重新開啟";showCfg(sub,keys);
+    }else{st.textContent=Notification.permission==="denied"?"通知被拒絕咗，請去 iPhone「設定」→「通知」→「知識抽卡」打開。":"";}
+  }catch(e){}
+}
+$("pushBtn").onclick=async()=>{
+  const st=$("pushStatus");st.className="status";
+  if(isIOS&&!standalone){st.className="status err";st.textContent="要由主畫面圖示打開呢個 app 先開到通知。";return}
+  try{
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){st.className="status err";st.textContent="未允許通知。";return}
+    st.textContent="設定緊…";
+    const reg=await navigator.serviceWorker.ready;
+    const keys=await vapidKeys();
+    let sub=await reg.pushManager.getSubscription();
+    if(sub){
+      const k=sub.options&&sub.options.applicationServerKey;
+      if(!k||b64u(k)!==keys.publicKey){await sub.unsubscribe();sub=null}
+    }
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:unb64u(keys.publicKey)});
+    showCfg(sub,keys);
+    st.textContent="通知已開啟。照下面步驟將設定碼貼去 GitHub 就完成。";
+  }catch(e){st.className="status err";st.textContent="開唔到通知："+(e&&e.message||e);}
+};
+$("copyCfg").onclick=async()=>{
+  try{await navigator.clipboard.writeText($("pushCfg").value);$("copyCfg").textContent="已複製"}
+  catch(e){$("pushCfg").select();$("copyCfg").textContent="請手動複製"}
+  setTimeout(()=>$("copyCfg").textContent="複製設定碼",2000);
+};
+$("testBtn").onclick=async()=>{
+  const st=$("pushStatus");
+  if(Notification.permission!=="granted"){st.className="status err";st.textContent="要先撳「開啟通知」。";return}
+  await reload();
+  const c=cards[Math.floor(Math.random()*cards.length)];
+  const reg=await navigator.serviceWorker.ready;
+  await reg.showNotification(c&&c.source?c.source:"知識抽卡",{body:c?c.text.replace(/\s+/g," ").slice(0,180):"未有卡。",icon:"icons/icon-192.png",tag:"zhishi-random",data:{id:c?c.id:null}});
+  st.className="status";st.textContent="已發出測試通知。";
+};
+
+// ---------- 啟動 ----------
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+  navigator.serviceWorker.addEventListener("message",e=>{
+    if(e.data&&e.data.type==="show-card")reload().then(()=>showCard(e.data.id));
+  });
+}
+(async()=>{
+  try{await reload()}catch(e){$("c-text").textContent="讀唔到本地資料。";return}
+  const params=new URLSearchParams(location.search);
+  const id=params.get("card");
+  if(id){showCard(id);history.replaceState(null,"",location.pathname)}
+  else draw();
+  if(location.hash==="#add")show("add");
+})();
+</script>
+</body>
+</html>
