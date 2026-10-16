@@ -190,6 +190,7 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
         </div>
       </div>
     </div>
+    <p class="hint" style="text-align:center">版本 2026.10.16-4</p>
   </section>
 </div>
 
@@ -319,24 +320,26 @@ $("save").onclick=async()=>{
   try{
     const c={id:ZDB.newId(),text,source:$("src").value.trim(),createdAt:Date.now()};
     await ZDB.put(c);await reload();askPersist();
-    $("txt").value="";$("src").value="";$("ocrStatus").textContent="";closePhoto();st.textContent="已儲存。";
+    $("txt").value="";$("src").value="";$("ocrStatus").textContent="";ocrPrefix="";ocrSetValue=null;fitTxt();closePhoto();st.textContent="已儲存。";
     if(cards.length===1)paint(c);
   }catch(e){st.className="status err";st.textContent="儲存唔到："+(e&&e.name==="QuotaExceededError"?"手機空間不足。":"再試一次。")}
   $("save").disabled=false;
 };
-$("clearDraft").onclick=()=>{closePhoto();$("txt").value="";$("src").value="";$("saveStatus").textContent="";$("ocrStatus").textContent=""};
+function fitTxt(){const t=$("txt");t.style.height="auto";t.style.height=Math.max(180,t.scrollHeight+2)+"px"}
+$("txt").addEventListener("input",fitTxt);
+$("clearDraft").onclick=()=>{ocrPrefix="";ocrSetValue=null;closePhoto();$("txt").value="";$("src").value="";$("saveStatus").textContent="";$("ocrStatus").textContent="";fitTxt()};
 
 // ---------- 相片 → 文字（全部喺手機入面做，免費、唔上載） ----------
 const base=new URL("./",location.href).href;
-let ocrWorker=null, ocrLang=null, ocrBusy=false;
+let ocrWorker=null, ocrLang=null, ocrBusy=false, segMode=false;
 let photo=null;        // {url, img}：只喺記憶體，收起或者儲存就丟棄
 let crop=null;         // 揀咗嘅範圍（顯示座標）
 let ocrDir="auto";     // auto | h | v
-let ocrPrefix="";      // 轉文字之前框入面原有嘅字，再轉一次時會換走上次結果
+let ocrPrefix="", ocrSetValue=null;      // 轉文字之前框入面原有嘅字，再轉一次時會換走上次結果
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("load"));document.head.append(s)})}
 const stageText={"loading tesseract core":"載入辨識程式","initializing tesseract":"準備緊","loading language traineddata":"載入辨識資料","initializing api":"準備緊","recognizing text":"辨識緊"};
 // 一個 worker 輪流用橫排／直排資料，慳 iPhone 記憶體
-async function getWorker(dir){
+async function getWorker(dir,psm){
   const lang=dir==="v"?"chi_tra_vert":"chi_tra+eng";
   if(!ocrWorker){
     if(!window.Tesseract)await loadScript("vendor/tesseract/tesseract.min.js");
@@ -346,6 +349,7 @@ async function getWorker(dir){
       langPath:base+"vendor/tessdata",
       workerBlobURL:false,
       logger:m=>{
+        if(segMode)return;
         const p=$("ocrProg");p.hidden=false;p.value=m.progress||0;
         $("ocrStatus").textContent=(stageText[m.status]||"處理緊")+(dir==="v"?"（直排）":"")+"…";
       },
@@ -355,18 +359,21 @@ async function getWorker(dir){
   }
   ocrLang=lang;
   // 直排用「單一直行文字區」模式
-  await ocrWorker.setParameters({preserve_interword_spaces:"1",tessedit_pageseg_mode:dir==="v"?"5":"3"});
+  await ocrWorker.setParameters({preserve_interword_spaces:"1",tessedit_pageseg_mode:psm||(dir==="v"?"5":"3")});
   return ocrWorker;
 }
 // 裁剪 + 灰階 + 調校大小；畫完即刻清走
-function toCanvas(){
+function srcRect(){
   const img=photo.img,nw=img.naturalWidth,nh=img.naturalHeight;
-  let sx=0,sy=0,sw=nw,sh=nh;
-  if(crop){
-    const r=nw/img.clientWidth;
-    sx=Math.max(0,Math.round(crop.x*r));sy=Math.max(0,Math.round(crop.y*r));
-    sw=Math.min(nw-sx,Math.round(crop.w*r));sh=Math.min(nh-sy,Math.round(crop.h*r));
-  }
+  if(!crop)return{sx:0,sy:0,sw:nw,sh:nh};
+  const r=nw/img.clientWidth;
+  const sx=Math.max(0,Math.round(crop.x*r)),sy=Math.max(0,Math.round(crop.y*r));
+  return{sx,sy,sw:Math.min(nw-sx,Math.round(crop.w*r)),sh:Math.min(nh-sy,Math.round(crop.h*r))};
+}
+// 「工作圖」：原相（或者拉框範圍），拉直之後會換成轉正咗嘅畫布
+function makeSrc(){return{el:photo.img,...srcRect()}}
+function toCanvas(src){
+  const img=src.el,{sx,sy,sw,sh}=src;
   const long=Math.max(sw,sh);
   const scale=long>2400?2400/long:(long<1600?Math.min(2.5,1600/long):1);
   const cv=document.createElement("canvas");
@@ -377,19 +384,20 @@ function toCanvas(){
   return cv;
 }
 // 自適應黑白化（Bradley）：每點同附近平均比較，唔怕相片一邊光一邊暗，字亦唔會斷
-function binarize(ctx,w,h){
+function binarize(ctx,w,h,t=.15){
   const id=ctx.getImageData(0,0,w,h),d=id.data,n=w*h;
   const g=new Float32Array(n);
   for(let i=0;i<n;i++)g[i]=.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2];
   const W=w+1,I=new Float64Array(W*(h+1));
   for(let y=0;y<h;y++){let row=0;for(let x=0;x<w;x++){row+=g[y*w+x];I[(y+1)*W+x+1]=I[y*W+x+1]+row}}
-  const r=Math.max(8,Math.round(Math.max(w,h)/20)),t=.15;
+  const r=Math.max(8,Math.round(Math.max(w,h)/20));
   for(let y=0;y<h;y++){
     const y0=Math.max(0,y-r),y1=Math.min(h,y+r+1);
     for(let x=0;x<w;x++){
       const x0=Math.max(0,x-r),x1=Math.min(w,x+r+1);
       const sum=I[y1*W+x1]-I[y0*W+x1]-I[y1*W+x0]+I[y0*W+x0];
-      const v=g[y*w+x]*(x1-x0)*(y1-y0)<sum*(1-t)?0:255,k=y*w+x<<2;
+      const n=(x1-x0)*(y1-y0),gv=g[y*w+x];
+      const v=gv*n<sum*(1-t)&&sum/n-gv>18?0:255,k=y*w+x<<2;   // 要比附近暗得夠多先當係墨，平滑位嘅雜點唔要
       d[k]=d[k+1]=d[k+2]=v;d[k+3]=255;
     }
   }
@@ -410,6 +418,7 @@ function tidy(raw){
     }
     // 中文旁邊嘅半形標點轉返全形
     const full={",":"，",";":"；",":":"：","?":"？","!":"！","(":"（",")":"）"};
+    out=out.replace(/[，、,]+(?=[。！？])/g,"");   // 句號前多餘嘅逗號
     return out.replace(new RegExp("(["+CJK+"])\\s*([,;:?!()])\\s*","g"),(m,a,p)=>a+full[p])
               .replace(new RegExp("\\s*([,;:?!()])\\s*(?=["+CJK+"])","g"),(m,p)=>full[p]);
   }).filter(Boolean).join("\n\n");
@@ -423,20 +432,137 @@ function score(text,conf){
   const bad=Math.min(1,(junk+2*Math.max(0,frags-words))/s.length);
   return conf*(1-bad);
 }
-async function recognize(cv,dir){
-  const w=await getWorker(dir);
-  const {data}=await w.recognize(cv);
+async function recognize(cv,dir,psm){
+  const w=await getWorker(dir,psm);
+  const {data}=await w.recognize(cv,{},{blocks:true});
+  const syms=[];
+  for(const b of data.blocks||[])for(const pa of b.paragraphs)for(const li of pa.lines)for(const wo of li.words)wo.symbols.forEach((sy,i)=>syms.push([sy.text,sy.confidence,i===0]));
   const text=tidy(data.text||"");
-  return {text,conf:data.confidence||0,score:score(text,data.confidence||0),dir};
+  return {text,conf:data.confidence||0,score:score(text,data.confidence||0),dir,syms};
 }
-
+// 估計相片斜咗幾多度：試唔同角度，睇邊個角度令每行（或每直行）最整齊
+function skewAngle(cv,dir){
+  const w=cv.width,h=cv.height,d=cv.getContext("2d").getImageData(0,0,w,h).data;
+  const step=Math.max(1,Math.round(Math.max(w,h)/700)),xs=[],ys=[];
+  // 只用細嘅墨點（字），長直線（紙邊）唔計：檢查附近係咪連續一長條
+  const ink=(x,y)=>x>=0&&y>=0&&x<w&&y<h&&d[(y*w+x)<<2]<128;
+  const L=Math.round(Math.max(w,h)/25);
+  for(let y=0;y<h;y+=step)for(let x=0;x<w;x+=step){
+    if(!ink(x,y))continue;
+    if(ink(x,y-L)&&ink(x,y+L)&&ink(x,y-(L>>1))&&ink(x,y+(L>>1)))continue;
+    if(ink(x-L,y)&&ink(x+L,y)&&ink(x-(L>>1),y)&&ink(x+(L>>1),y))continue;
+    xs.push(x/step);ys.push(y/step);
+  }
+  if(xs.length<300)return 0;
+  const off=Math.ceil((w+h)/step)+2,hist=new Float64Array(off*2);
+  const sharp=deg=>{
+    const a=deg*Math.PI/180,c=Math.cos(a),sn=Math.sin(a);hist.fill(0);
+    for(let i=0;i<xs.length;i++)hist[Math.round(dir==="v"?xs[i]*c+ys[i]*sn:ys[i]*c-xs[i]*sn)+off]++;
+    let v=0;for(let i=0;i<hist.length;i++)v+=hist[i]*hist[i];return v;
+  };
+  let best=0,bv=sharp(0);
+  for(let g=-8;g<=8;g+=.5){const v=sharp(g);if(v>bv){bv=v;best=g}}
+  for(let g=best-.4;g<=best+.4;g+=.1){const v=sharp(g);if(v>bv){bv=v;best=g}}
+  return best;
+}
+function rotated(src,deg){
+  const a=-deg*Math.PI/180,c=Math.abs(Math.cos(a)),sn=Math.abs(Math.sin(a));
+  const sc=Math.min(1,3000/Math.max(src.sw,src.sh));
+  const w=src.sw*sc,h=src.sh*sc,W=Math.round(w*c+h*sn),H=Math.round(w*sn+h*c);
+  const cv=document.createElement("canvas");cv.width=W;cv.height=H;
+  const ctx=cv.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);
+  ctx.translate(W/2,H/2);ctx.rotate(a);
+  ctx.drawImage(src.el,src.sx,src.sy,src.sw,src.sh,-w/2,-h/2,w,h);
+  return{el:cv,sx:0,sy:0,sw:W,sh:H,temp:true};
+}
+// 搵出每一行（橫排）或者每一直行（直排）喺原相嘅位置；搵得唔清楚（例如相太斜）就回傳 null
+function segments(cv,dir,src){
+  const w=cv.width,h=cv.height,d=cv.getContext("2d").getImageData(0,0,w,h).data;
+  const across=dir==="v"?w:h,along=dir==="v"?h:w,prof=new Uint32Array(across);
+  // 數「由白轉黑」嘅次數：字會轉好多次，紙邊陰影只係一大嚿
+  if(dir==="v"){for(let x=0;x<w;x++){let prev=false;for(let y=0;y<h;y++){const k=d[(y*w+x)<<2]<128;if(k&&!prev)prof[x]++;prev=k}}}
+  else{for(let y=0;y<h;y++){let prev=false;for(let x=0;x<w;x++){const k=d[(y*w+x)<<2]<128;if(k&&!prev)prof[y]++;prev=k}}}
+  // 門檻：扣除紙邊、陰影等每行都有嘅「底噪」
+  const sorted=Array.from(prof).sort((x,y)=>x-y),lo=sorted[Math.floor(across*.1)],hi=sorted[Math.floor(across*.98)];
+  const thr=Math.max(3,lo+(hi-lo)*.12);let segs=[],st=-1;
+  for(let i=0;i<=across;i++){const ink=i<across&&prof[i]>thr;if(ink&&st<0)st=i;if(!ink&&st>=0){segs.push([st,i]);st=-1}}
+  if(!segs.length)return null;
+  const med=a=>{const s=a.slice().sort((x,y)=>x-y);return s[s.length>>1]};
+  let m=med(segs.map(s=>s[1]-s[0]));
+  // 字入面嘅細縫唔當分行
+  const merged=[segs[0]];
+  for(const sg of segs.slice(1)){const last=merged[merged.length-1];if(sg[0]-last[1]<m*.3)last[1]=sg[1];else merged.push(sg)}
+  segs=merged;m=med(segs.map(s=>s[1]-s[0]));
+  segs=segs.filter(s=>s[1]-s[0]>=m*.4);
+  if(!segs.length||segs.length>60||segs.some(s=>s[1]-s[0]>m*2.6)||(segs.length===1&&m>across*.4))return null;
+  // 每行再搵頭尾：只要字嘅部分，唔要延伸到紙邊、背景
+  const ext=([a,b])=>{
+    const th=b-a,fill=new Float32Array(along);
+    for(let j=0;j<along;j++){let n=0;for(let i=a;i<b;i++){const x=dir==="v"?i:j,y=dir==="v"?j:i;if(d[(y*w+x)<<2]<128)n++}fill[j]=n/th}
+    const runs=[];let rs=-1;
+    for(let j=0;j<=along;j++){const t=j<along&&fill[j]>.02&&fill[j]<.75;if(t&&rs<0)rs=j;if(!t&&rs>=0){runs.push([rs,j]);rs=-1}}
+    if(!runs.length)return[0,along];
+    const groups=[[...runs[0],runs[0][1]-runs[0][0]]];
+    for(const r of runs.slice(1)){const g=groups[groups.length-1];if(r[0]-g[1]<th*3){g[1]=r[1];g[2]+=r[1]-r[0]}else groups.push([...r,r[1]-r[0]])}
+    const g=groups.sort((x,y)=>y[2]-x[2])[0];
+    return[Math.max(0,g[0]-th*.5),Math.min(along,g[1]+th*.5)];
+  };
+  const k=(dir==="v"?src.sw:src.sh)/across,kl=(dir==="v"?src.sh:src.sw)/along;
+  segs=segs.map(sg=>{const [e0,e1]=ext(sg);return[sg[0]*k,sg[1]*k,e0*kl,e1*kl]});
+  return dir==="v"?segs.reverse():segs;   // 直排由右至左
+}
+const SEG_VARIANTS=[[55,.12],[65,.18],[70,.15],[75,.12],[85,.18]];  // [字大小px, 黑白化門檻]
+// 逐行讀：用五種字大小／黑白化各讀一次，逐隻字投票
+async function readSegment([a,b,e0,e1],dir,R){
+  const img=R.el,thick=b-a,pad=thick*.3;
+  let sx,sy,sw,sh;
+  if(dir==="v"){sx=R.sx+Math.max(0,a-pad);sw=Math.min(R.sx+R.sw,R.sx+b+pad)-sx;sy=R.sy+e0;sh=e1-e0}
+  else{sy=R.sy+Math.max(0,a-pad);sh=Math.min(R.sy+R.sh,R.sy+b+pad)-sy;sx=R.sx+e0;sw=e1-e0}
+  const cands=[];
+  for(const [px,t] of SEG_VARIANTS){
+    const s=Math.min(4,Math.max(.3,px/thick));
+    const cv=document.createElement("canvas");
+    cv.width=Math.max(1,Math.round(sw*s));cv.height=Math.max(1,Math.min(6000,Math.round(sh*s)));
+    const ctx=cv.getContext("2d",{willReadFrequently:true});
+    ctx.drawImage(img,sx,sy,sw,sh,0,0,cv.width,cv.height);
+    binarize(ctx,cv.width,cv.height,t);
+    cands.push(await recognize(cv,dir,dir==="v"?"5":"7"));
+    cv.width=cv.height=0;
+  }
+  const lens={};for(const c of cands)lens[c.syms.length]=(lens[c.syms.length]||0)+1;
+  const L=+Object.entries(lens).sort((x,y)=>y[1]-x[1]||y[0]-x[0])[0][0];
+  const same=cands.filter(c=>c.syms.length===L);
+  const conf=same.reduce((t,c)=>t+c.conf,0)/(same.length||1);
+  if(!L||same.length<2){const c=cands.slice().sort((x,y)=>y.conf-x.conf)[0];return{text:c.text,conf:c.conf}}
+  const picks=[];
+  for(let i=0;i<L;i++){
+    const tally={};let starts=0;
+    for(const c of same){const [ch,cf,ws]=c.syms[i];tally[ch]=(tally[ch]||0)+cf+20;if(ws)starts++}
+    const [ch,tot]=Object.entries(tally).sort((x,y)=>y[1]-x[1])[0];
+    picks.push({ch,conf:tot/same.length-20,ws:starts*2>same.length});
+  }
+  // 頭尾信心低或者係怪符號（多數係紙邊、陰影）就刪走
+  const junk=p=>p.conf<35||/^[_|\[\]{}~^`=<>]+$/.test(p.ch);
+  while(picks.length&&junk(picks[0]))picks.shift();
+  while(picks.length&&junk(picks[picks.length-1]))picks.pop();
+  let text="";
+  for(const p of picks){
+    // 英文字之間保留空格
+    if(text&&p.ws&&/[A-Za-z0-9]$/.test(text)&&/^[A-Za-z0-9]/.test(p.ch))text+=" ";
+    text+=p.ch;
+  }
+  return{text:tidy(text),conf};
+}
 // 揀相 → 顯示預覽，可以拉框揀範圍
 function openPhoto(inp){
   const f=inp.files[0];inp.value="";if(!f||ocrBusy)return;
   closePhoto();
   const url=URL.createObjectURL(f);
   const img=$("cropImg");img.src=url;photo={url,img};crop=null;$("cropSel").hidden=true;
-  ocrPrefix=$("txt").value.trim();
+  // 上一張相轉出嚟、未改過嘅字會被新結果取代；自己打或者改過嘅字就保留
+  const cur=$("txt").value.trim();
+  if(cur!==ocrSetValue)ocrPrefix=cur;
+
   $("photoPanel").hidden=false;$("ocrStatus").className="status";
   $("ocrStatus").textContent="想淨係轉某一段，可以用手指喺相上拉框；唔拉就轉成張。影相時對正書頁、影近啲、避開反光，會準好多。";
   img.onload=()=>$("photoPanel").scrollIntoView({block:"nearest",behavior:"smooth"});
@@ -451,9 +577,9 @@ async function runOcr(){
   const st=$("ocrStatus"),prog=$("ocrProg");st.className="status";
   ocrBusy=true;for(const id of ["photoBtn","albumBtn","ocrGo","ocrCancel"])$(id).disabled=true;
   st.textContent="準備緊…";prog.hidden=false;prog.value=0;
-  let cv=null;
+  let cv=null,src=null;
   try{
-    cv=toCanvas();
+    src=makeSrc();cv=toCanvas(src);
     let best;
     if(ocrDir==="auto"){
       best=await recognize(cv,"h");
@@ -462,9 +588,33 @@ async function runOcr(){
         if(v.score>best.score)best=v;
       }
     }else best=await recognize(cv,ocrDir);
+    // 第二步：逐行精讀
+    let segs=null;
+    if(best.text){
+      const ang=skewAngle(cv,best.dir);
+      if(Math.abs(ang)>=.3){cv.width=cv.height=0;src=rotated(src,ang);cv=toCanvas(src)}
+      segs=segments(cv,best.dir,src);
+    }
+    if(segs){
+      const out=[];let confSum=0;
+      for(let i=0;i<segs.length;i++){
+        segMode=true;prog.value=i/segs.length;
+        st.textContent="精讀緊第 "+(i+1)+"/"+segs.length+(best.dir==="v"?" 直行":" 行")+"…";
+        const r=await readSegment(segs[i],best.dir,src);
+        if(r.text){out.push(r.text);confSum+=r.conf}
+      }
+      segMode=false;
+      const conf=out.length?confSum/out.length:0;
+      if(out.length&&conf>=best.conf-5){
+        const text=tidy(out.join("\n"));
+        best={...best,text,conf,score:score(text,conf)};
+      }
+    }
     if(!best.text){st.className="status err";st.textContent="睇唔到文字。試下拉框淨係揀文字部分，或者影清啲、正啲。";}
     else{
       $("txt").value=(ocrPrefix?ocrPrefix+"\n\n":"")+best.text;
+      ocrSetValue=$("txt").value.trim();fitTxt();
+      $("txt").scrollIntoView({block:"nearest",behavior:"smooth"});
       const how=best.dir==="v"?"（當直排讀）":"";
       st.textContent=best.score<55
         ?"轉好咯"+how+"，但好多字可能唔啱。可以拉框揀細啲範圍、轉換橫排／直排，再撳「再轉一次」。"
@@ -473,9 +623,11 @@ async function runOcr(){
     }
   }catch(e){
     st.className="status err";st.textContent="轉唔到，再試一次或者手打。";
+    segMode=false;
     if(ocrWorker){try{await ocrWorker.terminate()}catch(_){}ocrWorker=null;ocrLang=null}
   }finally{
     if(cv){cv.width=0;cv.height=0;cv=null}
+    if(src&&src.temp){src.el.width=src.el.height=0}src=null;
     prog.hidden=true;ocrBusy=false;
     for(const id of ["photoBtn","albumBtn","ocrGo","ocrCancel"])$(id).disabled=false;
   }
