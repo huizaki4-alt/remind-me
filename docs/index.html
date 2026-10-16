@@ -81,6 +81,13 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
 .item .b button{border:0;background:none;font:inherit;font-size:14px;color:var(--accent);cursor:pointer;padding:6px 8px}
 .item .b button.sure{color:var(--redline);font-weight:700}
 .item .b .acts{white-space:nowrap}
+.crop{position:relative;width:fit-content;max-width:100%;margin:0 auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:8px;overflow:hidden;background:var(--card);border:1px solid var(--line);line-height:0}
+.crop img{max-width:100%;max-height:60vh;width:auto;height:auto;display:block;pointer-events:none;-webkit-touch-callout:none}
+.crop .sel{position:absolute;border:2px solid var(--accent);background:rgba(43,76,126,.15);box-shadow:0 0 0 9999px rgba(0,0,0,.35);pointer-events:none}
+.seg{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--muted)}
+.seg span{margin-right:6px}
+.seg button{border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;padding:7px 12px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .hint{font-size:13px;color:var(--muted);line-height:1.65;margin:0}
 .hint ol{margin:4px 0 0;padding-left:20px}
@@ -118,6 +125,13 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
       <input type="file" id="photo" accept="image/*" capture="environment" hidden>
       <input type="file" id="album" accept="image/*" hidden>
     </div>
+    <div id="photoPanel" class="field" hidden>
+      <div class="crop" id="cropBox"><img id="cropImg" alt="揀咗嘅相（只喺手機記憶體，唔會儲存）"><div class="sel" id="cropSel" hidden></div></div>
+      <div class="seg" id="dirSeg" role="group" aria-label="文字排版">
+        <span>排版</span><button data-dir="auto" aria-pressed="true">自動</button><button data-dir="h" aria-pressed="false">橫排</button><button data-dir="v" aria-pressed="false">直排</button>
+      </div>
+      <div class="row"><button class="btn primary" id="ocrGo">轉文字</button><button class="btn" id="ocrCancel">收起相片</button></div>
+    </div>
     <progress id="ocrProg" max="1" value="0" hidden></progress>
     <div class="status" id="ocrStatus"></div>
     <div class="field"><label class="lab" for="txt">內容</label>
@@ -126,7 +140,7 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
       <input type="text" id="src" placeholder="例如：《原子習慣》p.112"></div>
     <div class="row"><button class="btn primary" id="save">儲存</button><button class="btn" id="clearDraft">清除</button></div>
     <div class="status" id="saveStatus"></div>
-    <p class="hint">相片只喺手機入面轉文字，唔會上載，轉完即刻丟棄，唔會儲存。第一次轉要下載辨識資料（約 16MB），之後離線都用得。</p>
+    <p class="hint">相片只喺手機入面轉文字，唔會上載，轉完即刻丟棄，唔會儲存。第一次轉要下載辨識資料（約 18MB），之後離線都用得。</p>
     <p class="hint">想更準：喺 iPhone「相片」App 長按相入面嘅字 →「拷貝」，再貼落上面。</p>
   </section>
 
@@ -305,48 +319,68 @@ $("save").onclick=async()=>{
   try{
     const c={id:ZDB.newId(),text,source:$("src").value.trim(),createdAt:Date.now()};
     await ZDB.put(c);await reload();askPersist();
-    $("txt").value="";$("src").value="";$("ocrStatus").textContent="";st.textContent="已儲存。";
+    $("txt").value="";$("src").value="";$("ocrStatus").textContent="";closePhoto();st.textContent="已儲存。";
     if(cards.length===1)paint(c);
   }catch(e){st.className="status err";st.textContent="儲存唔到："+(e&&e.name==="QuotaExceededError"?"手機空間不足。":"再試一次。")}
   $("save").disabled=false;
 };
-$("clearDraft").onclick=()=>{$("txt").value="";$("src").value="";$("saveStatus").textContent="";$("ocrStatus").textContent=""};
+$("clearDraft").onclick=()=>{closePhoto();$("txt").value="";$("src").value="";$("saveStatus").textContent="";$("ocrStatus").textContent=""};
 
 // ---------- 相片 → 文字（全部喺手機入面做，免費、唔上載） ----------
 const base=new URL("./",location.href).href;
-let ocrWorker=null, ocrBusy=false;
+let ocrWorker=null, ocrLang=null, ocrBusy=false;
+let photo=null;        // {url, img}：只喺記憶體，收起或者儲存就丟棄
+let crop=null;         // 揀咗嘅範圍（顯示座標）
+let ocrDir="auto";     // auto | h | v
+let ocrPrefix="";      // 轉文字之前框入面原有嘅字，再轉一次時會換走上次結果
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("load"));document.head.append(s)})}
-const stageText={"loading tesseract core":"載入辨識程式","initializing tesseract":"準備緊","loading language traineddata":"下載辨識資料","initializing api":"準備緊","recognizing text":"辨識緊"};
-async function getWorker(){
-  if(ocrWorker)return ocrWorker;
-  if(!window.Tesseract)await loadScript("vendor/tesseract/tesseract.min.js");
-  ocrWorker=await Tesseract.createWorker(["chi_tra","eng"],1,{
-    workerPath:base+"vendor/tesseract/worker.min.js",
-    corePath:base+"vendor/tesseract",
-    langPath:base+"vendor/tessdata",
-    workerBlobURL:false,
-    logger:m=>{
-      const p=$("ocrProg");p.hidden=false;p.value=m.progress||0;
-      $("ocrStatus").textContent=(stageText[m.status]||"處理緊")+"…";
-    },
-  });
-  await ocrWorker.setParameters({preserve_interword_spaces:"1"});
+const stageText={"loading tesseract core":"載入辨識程式","initializing tesseract":"準備緊","loading language traineddata":"載入辨識資料","initializing api":"準備緊","recognizing text":"辨識緊"};
+// 一個 worker 輪流用橫排／直排資料，慳 iPhone 記憶體
+async function getWorker(dir){
+  const lang=dir==="v"?"chi_tra_vert":"chi_tra+eng";
+  if(!ocrWorker){
+    if(!window.Tesseract)await loadScript("vendor/tesseract/tesseract.min.js");
+    ocrWorker=await Tesseract.createWorker(lang.split("+"),1,{
+      workerPath:base+"vendor/tesseract/worker.min.js",
+      corePath:base+"vendor/tesseract",
+      langPath:base+"vendor/tessdata",
+      workerBlobURL:false,
+      logger:m=>{
+        const p=$("ocrProg");p.hidden=false;p.value=m.progress||0;
+        $("ocrStatus").textContent=(stageText[m.status]||"處理緊")+(dir==="v"?"（直排）":"")+"…";
+      },
+    });
+  }else if(ocrLang!==lang){
+    await ocrWorker.reinitialize(lang.split("+"),1);
+  }
+  ocrLang=lang;
+  // 直排用「單一直行文字區」模式
+  await ocrWorker.setParameters({preserve_interword_spaces:"1",tessedit_pageseg_mode:dir==="v"?"5":"3"});
   return ocrWorker;
 }
-// 縮細 + 轉灰階，快啲又準啲；畫完即刻清走
-async function toCanvas(file){
-  const url=URL.createObjectURL(file);
-  try{
-    const img=await new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=no;i.src=url});
-    const max=2200,scale=Math.min(1,max/Math.max(img.naturalWidth,img.naturalHeight));
-    const cv=document.createElement("canvas");
-    cv.width=Math.round(img.naturalWidth*scale);cv.height=Math.round(img.naturalHeight*scale);
-    const ctx=cv.getContext("2d",{willReadFrequently:true});
-    ctx.filter="grayscale(1) contrast(1.25)";
-    ctx.drawImage(img,0,0,cv.width,cv.height);
-    img.src="";
-    return cv;
-  }finally{URL.revokeObjectURL(url)}
+// 裁剪 + 灰階 + 調校大小；畫完即刻清走
+function toCanvas(){
+  const img=photo.img,nw=img.naturalWidth,nh=img.naturalHeight;
+  let sx=0,sy=0,sw=nw,sh=nh;
+  if(crop){
+    const r=nw/img.clientWidth;
+    sx=Math.max(0,Math.round(crop.x*r));sy=Math.max(0,Math.round(crop.y*r));
+    sw=Math.min(nw-sx,Math.round(crop.w*r));sh=Math.min(nh-sy,Math.round(crop.h*r));
+  }
+  const long=Math.max(sw,sh);
+  const scale=long>2400?2400/long:(long<1400?Math.min(2.5,1400/long):1);
+  const cv=document.createElement("canvas");
+  cv.width=Math.round(sw*scale);cv.height=Math.round(sh*scale);
+  const ctx=cv.getContext("2d",{willReadFrequently:true});
+  ctx.drawImage(img,sx,sy,sw,sh,0,0,cv.width,cv.height);
+  const id=ctx.getImageData(0,0,cv.width,cv.height),d=id.data;
+  for(let i=0;i<d.length;i+=4){
+    let g=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+    g=(g-128)*1.25+128;g=g<0?0:g>255?255:g;
+    d[i]=d[i+1]=d[i+2]=g;
+  }
+  ctx.putImageData(id,0,0);
+  return cv;
 }
 const CJK="\\u2E80-\\u9FFF\\uF900-\\uFAFF\\uFF00-\\uFFEF\\u3000-\\u303F";
 function tidy(raw){
@@ -367,35 +401,94 @@ function tidy(raw){
               .replace(new RegExp("\\s*([,;:?!()])\\s*(?=["+CJK+"])","g"),(m,p)=>full[p]);
   }).filter(Boolean).join("\n\n");
 }
-async function ocr(inp){
-  let f=inp.files[0];inp.value="";if(!f||ocrBusy)return;
+// 評分：信心度，扣減亂碼特徵（怪符號、夾喺中文之間嘅零碎英文字母）
+function score(text,conf){
+  const s=text.replace(/\s/g,"");if(!s)return 0;
+  const junk=(s.match(new RegExp("[^"+CJK+"A-Za-z0-9.,;:!?'\"()\\-]","g"))||[]).length;
+  const frags=(text.match(/(^|[^A-Za-z])[A-Za-z]{1,2}(?![A-Za-z])/g)||[]).length;
+  const words=(text.match(/[A-Za-z]{3,}/g)||[]).length;
+  const bad=Math.min(1,(junk+2*Math.max(0,frags-words))/s.length);
+  return conf*(1-bad);
+}
+async function recognize(cv,dir){
+  const w=await getWorker(dir);
+  const {data}=await w.recognize(cv);
+  const text=tidy(data.text||"");
+  return {text,conf:data.confidence||0,score:score(text,data.confidence||0),dir};
+}
+
+// 揀相 → 顯示預覽，可以拉框揀範圍
+function openPhoto(inp){
+  const f=inp.files[0];inp.value="";if(!f||ocrBusy)return;
+  closePhoto();
+  const url=URL.createObjectURL(f);
+  const img=$("cropImg");img.src=url;photo={url,img};crop=null;$("cropSel").hidden=true;
+  ocrPrefix=$("txt").value.trim();
+  $("photoPanel").hidden=false;$("ocrStatus").className="status";
+  $("ocrStatus").textContent="想淨係轉某一段，可以用手指喺相上拉框；唔拉就轉成張。";
+  img.onload=()=>$("photoPanel").scrollIntoView({block:"nearest",behavior:"smooth"});
+  img.onerror=()=>{closePhoto();$("ocrStatus").className="status err";$("ocrStatus").textContent="開唔到呢張相，換一張試下。"};
+}
+function closePhoto(){
+  if(photo){URL.revokeObjectURL(photo.url);photo.img.removeAttribute("src");photo=null}
+  crop=null;$("cropSel").hidden=true;$("photoPanel").hidden=true;
+}
+async function runOcr(){
+  if(!photo||ocrBusy)return;
   const st=$("ocrStatus"),prog=$("ocrProg");st.className="status";
-  ocrBusy=true;$("photoBtn").disabled=true;$("albumBtn").disabled=true;
+  ocrBusy=true;for(const id of ["photoBtn","albumBtn","ocrGo","ocrCancel"])$(id).disabled=true;
   st.textContent="準備緊…";prog.hidden=false;prog.value=0;
   let cv=null;
   try{
-    cv=await toCanvas(f);f=null;
-    const w=await getWorker();
-    const {data}=await w.recognize(cv);
-    const text=tidy(data.text||"");
-    if(!text){st.className="status err";st.textContent="睇唔到文字，試下影清啲、正啲。";}
+    cv=toCanvas();
+    let best;
+    if(ocrDir==="auto"){
+      best=await recognize(cv,"h");
+      if(best.score<70){                       // 橫排讀得唔好，試埋直排
+        const v=await recognize(cv,"v");
+        if(v.score>best.score)best=v;
+      }
+    }else best=await recognize(cv,ocrDir);
+    if(!best.text){st.className="status err";st.textContent="睇唔到文字。試下拉框淨係揀文字部分，或者影清啲、正啲。";}
     else{
-      $("txt").value=($("txt").value.trim()?$("txt").value.trim()+"\n\n":"")+text;
-      st.textContent=data.confidence<55?"轉好咯，但張相唔係好清楚，記得核對再改。":"轉好咯，睇一睇、改一改再儲存。";
+      $("txt").value=(ocrPrefix?ocrPrefix+"\n\n":"")+best.text;
+      const how=best.dir==="v"?"（當直排讀）":"";
+      st.textContent=best.score<55
+        ?"轉好咯"+how+"，但好多字可能唔啱。可以拉框揀細啲範圍、轉換橫排／直排，再撳「再轉一次」。"
+        :"轉好咯"+how+"，睇一睇、改一改再儲存。唔啱可以改範圍再轉。";
+      $("ocrGo").textContent="再轉一次";
     }
   }catch(e){
     st.className="status err";st.textContent="轉唔到，再試一次或者手打。";
-    if(ocrWorker){try{await ocrWorker.terminate()}catch(_){}ocrWorker=null}
+    if(ocrWorker){try{await ocrWorker.terminate()}catch(_){}ocrWorker=null;ocrLang=null}
   }finally{
     if(cv){cv.width=0;cv.height=0;cv=null}
     prog.hidden=true;ocrBusy=false;
-    $("photoBtn").disabled=false;$("albumBtn").disabled=false;
+    for(const id of ["photoBtn","albumBtn","ocrGo","ocrCancel"])$(id).disabled=false;
   }
 }
+// 拉框
+(()=>{
+  const box=$("cropBox"),sel=$("cropSel");let start=null;
+  const pos=e=>{const r=$("cropImg").getBoundingClientRect();return{x:Math.min(Math.max(e.clientX-r.left,0),r.width),y:Math.min(Math.max(e.clientY-r.top,0),r.height)}};
+  box.addEventListener("pointerdown",e=>{if(!photo||ocrBusy)return;start=pos(e);box.setPointerCapture(e.pointerId);e.preventDefault()});
+  box.addEventListener("pointermove",e=>{
+    if(!start)return;const p=pos(e);
+    crop={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};
+    Object.assign(sel.style,{left:crop.x+"px",top:crop.y+"px",width:crop.w+"px",height:crop.h+"px"});sel.hidden=false;
+  });
+  const end=()=>{if(!start)return;start=null;if(!crop||crop.w<24||crop.h<24){crop=null;sel.hidden=true}};
+  box.addEventListener("pointerup",end);box.addEventListener("pointercancel",end);
+})();
+for(const b of document.querySelectorAll("#dirSeg button"))b.onclick=()=>{
+  ocrDir=b.dataset.dir;for(const x of document.querySelectorAll("#dirSeg button"))x.setAttribute("aria-pressed",x===b);
+};
 $("photoBtn").onclick=()=>$("photo").click();
 $("albumBtn").onclick=()=>$("album").click();
-$("photo").onchange=()=>ocr($("photo"));
-$("album").onchange=()=>ocr($("album"));
+$("photo").onchange=()=>{openPhoto($("photo"));$("ocrGo").textContent="轉文字"};
+$("album").onchange=()=>{openPhoto($("album"));$("ocrGo").textContent="轉文字"};
+$("ocrGo").onclick=runOcr;
+$("ocrCancel").onclick=()=>{closePhoto();$("ocrStatus").textContent=""};
 
 // ---------- 備份 ----------
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
