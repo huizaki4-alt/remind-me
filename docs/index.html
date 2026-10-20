@@ -63,16 +63,16 @@ section{display:flex;flex-direction:column;gap:14px}
   background-size:220px 220px,cover;
   box-shadow:inset 0 0 50px var(--parch-edge),inset 0 0 8px var(--parch-edge),0 1px 2px rgba(0,0,0,.12),0 10px 26px rgba(60,35,10,.14);
   position:relative;padding:28px 22px 20px;min-height:260px;display:flex;flex-direction:column;gap:14px}
-/* 好似 📜：紙本身上下捲埋，捲筒同紙同色，兩頭見到螺旋 */
-.card{margin-block:22px;padding-block:44px 40px;border-radius:0}
-.card::before,.card::after{content:"";position:absolute;left:-6px;right:-6px;height:38px;border-radius:19px;pointer-events:none;
+/* 卷軸：上下兩條紙卷，兩頭有木軸（車花木球 + 金環），全部係向量圖，幾大都清晰 */
+.card{margin:30px 22px;padding-block:50px 46px;border-radius:0}
+.card::before,.card::after{content:"";position:absolute;left:-34px;right:-34px;height:48px;pointer-events:none;
   background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 38'%3E%3Cellipse cx='13' cy='19' rx='12' ry='18' fill='%23f2dfb6' stroke='%23946c3c' stroke-width='1.2'/%3E%3Cpath d='M13 19c0-2 2.6-2.4 3.2-.4.8 2.6-2.4 4.6-4.8 3.4-3.4-1.6-2.8-7 .6-8.2 4.4-1.6 8.2 2.4 7.4 7-.9 5.2-7 7.8-11 4.6-4.6-3.6-3.8-11.6 1.4-14' fill='none' stroke='%23946c3c' stroke-width='1.3' stroke-linecap='round'/%3E%3C/svg%3E") left center/26px 38px no-repeat,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 38'%3E%3Cellipse cx='13' cy='19' rx='12' ry='18' fill='%23f2dfb6' stroke='%23946c3c' stroke-width='1.2'/%3E%3Cpath d='M13 19c0-2-2.6-2.4-3.2-.4-.8 2.6 2.4 4.6 4.8 3.4 3.4-1.6 2.8-7-.6-8.2-4.4-1.6-8.2 2.4-7.4 7 .9 5.2 7 7.8 11 4.6 4.6-3.6 3.8-11.6-1.4-14' fill='none' stroke='%23946c3c' stroke-width='1.3' stroke-linecap='round'/%3E%3C/svg%3E") right center/26px 38px no-repeat,
-    linear-gradient(#b8915a 0%,#e6cc98 18%,#f7e9c8 40%,#ecd6a6 62%,#c9a46c 86%,#a07a46 100%);
-  box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 -1px 0 rgba(90,60,25,.25) inset}
-.card::before{top:-19px;box-shadow:0 5px 7px -2px rgba(90,58,22,.45)}    /* 上卷：影投落紙 */
-.card::after{bottom:-19px;box-shadow:0 -4px 7px -2px rgba(90,58,22,.35),0 6px 8px rgba(30,18,6,.35)}
+    url(scroll-cap-l.svg?v=1) left center/60px 48px no-repeat,
+    url(scroll-cap-r.svg?v=1) right center/60px 48px no-repeat,
+    url(scroll-mid.svg?v=1) center/calc(100% - 96px) 48px no-repeat;
+  filter:drop-shadow(0 4px 3px rgba(60,35,10,.45))}
+.card::before{top:-25px}
+.card::after{bottom:-25px}
 .card .meta{font-size:12px;color:var(--parch-muted);letter-spacing:.04em;min-height:20px}
 .card .text{font-family:var(--f-card);font-size:19px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere;flex:1;margin-top:4px}
 .card.empty .text{font-family:var(--f-card);font-size:15px;color:var(--parch-muted)}
@@ -212,7 +212,7 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
         </div>
       </div>
     </div>
-    <p class="hint" style="text-align:center">版本 2026.10.20-17</p>
+    <p class="hint" style="text-align:center">版本 2026.10.20-18</p>
   </section>
 </div>
 
