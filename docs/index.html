@@ -107,7 +107,6 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
   <!-- 抽卡 -->
   <section id="v-draw">
     <article class="card empty" id="card">
-      <div class="meta" id="c-src"></div>
       <div class="text" id="c-text">載入緊…</div>
     </article>
     <div class="row" id="drawActs">
@@ -136,8 +135,6 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
     <div class="status" id="ocrStatus"></div>
     <div class="field"><label class="lab" for="txt">內容</label>
       <textarea id="txt"></textarea></div>
-    <div class="field"><label class="lab" for="src">出處（可留空）</label>
-      <input type="text" id="src"></div>
     <div class="row"><button class="btn primary" id="save">儲存</button><button class="btn" id="clearDraft">清除</button></div>
     <div class="status" id="saveStatus"></div>
     <p class="hint">相片只喺手機入面轉文字，唔會上載，轉完即刻丟棄，唔會儲存。第一次轉要下載辨識資料（約 18MB），之後離線都用得。</p>
@@ -190,7 +187,7 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
         </div>
       </div>
     </div>
-    <p class="hint" style="text-align:center">版本 2026.10.20-8</p>
+    <p class="hint" style="text-align:center">版本 2026.10.20-9</p>
   </section>
 </div>
 
@@ -231,7 +228,6 @@ function confirmTap(btn,label,fn){
 function editor(c,onDone){
   const box=document.createElement("div");box.className="field";
   const ta=document.createElement("textarea");ta.value=draft.text;ta.oninput=()=>draft.text=ta.value;ta.setAttribute("aria-label","內容");
-  const si=document.createElement("input");si.type="text";si.placeholder="出處（可留空）";si.value=draft.source;si.oninput=()=>draft.source=si.value;si.setAttribute("aria-label","出處");
   const r=document.createElement("div");r.className="row";
   const ok=document.createElement("button");ok.className="btn primary";ok.textContent="儲存修改";
   const no=document.createElement("button");no.className="btn";no.textContent="取消";
@@ -239,10 +235,10 @@ function editor(c,onDone){
   ok.onclick=async()=>{
     const text=draft.text.trim();if(!text){ok.textContent="內容不可以空";return}
     ok.disabled=true;
-    try{await ZDB.put({...c,text,source:draft.source.trim(),updatedAt:Date.now()});await reload();onDone(true)}
+    try{await ZDB.put({...c,text,updatedAt:Date.now()});await reload();onDone(true)}
     catch(e){ok.disabled=false;ok.textContent="儲存唔到，再試"}
   };
-  r.append(ok,no);box.append(ta,si,r);
+  r.append(ok,no);box.append(ta,r);
   return box;
 }
 
@@ -251,13 +247,13 @@ function paint(c){
   const card=$("card");
   $("drawActs").hidden=false;
   if(!c){
-    current=null;card.classList.add("empty");$("c-src").textContent="";
+    current=null;card.classList.add("empty");
     $("c-text").textContent="未有卡。去「加卡」影相或者打字，加咗之後呢度會隨機抽一張俾你睇。";
     $("again").disabled=true;$("drawEdit").hidden=true;$("drawDel").hidden=true;return;
   }
   current=c.id;
   card.classList.remove("empty","flip");void card.offsetWidth;card.classList.add("flip");
-  $("c-text").textContent=c.text;$("c-src").textContent=c.source||"";
+  $("c-text").textContent=c.text;
   $("again").disabled=cards.length<2;$("drawEdit").hidden=false;$("drawDel").hidden=false;
 }
 function draw(){
@@ -275,7 +271,7 @@ $("drawEdit").onclick=()=>{
   draft={text:c.text||"",source:c.source||""};
   $("drawActs").hidden=true;
   const card=$("card");card.classList.remove("flip");
-  $("c-src").textContent="";$("c-text").textContent="";
+  $("c-text").textContent="";
   $("c-text").append(editor(c,()=>{const n=cards.find(x=>x.id===c.id);paint(n||null)}));
 };
 $("drawDel").onclick=()=>confirmTap($("drawDel"),"刪除",async()=>{
@@ -297,7 +293,7 @@ function renderList(){
     const t=document.createElement("div");t.className="t";t.textContent=c.text;
     t.onclick=()=>showCard(c.id);
     const b=document.createElement("div");b.className="b";
-    const m=document.createElement("span");m.textContent=c.source||"";
+    const m=document.createElement("span");
     const acts=document.createElement("span");acts.className="acts";
     const ed=document.createElement("button");ed.textContent="修改";
     ed.onclick=()=>{editingList=c.id;draft={text:c.text||"",source:c.source||""};renderList()};
@@ -318,16 +314,16 @@ $("save").onclick=async()=>{
   if(!text){st.textContent="未有內容。";return}
   $("save").disabled=true;
   try{
-    const c={id:ZDB.newId(),text,source:$("src").value.trim(),createdAt:Date.now()};
+    const c={id:ZDB.newId(),text,createdAt:Date.now()};
     await ZDB.put(c);await reload();askPersist();
-    $("txt").value="";$("src").value="";$("ocrStatus").textContent="";ocrPrefix="";ocrSetValue=null;fitTxt();closePhoto();st.textContent="已儲存。";
+    $("txt").value="";$("ocrStatus").textContent="";ocrPrefix="";ocrSetValue=null;fitTxt();closePhoto();st.textContent="已儲存。";
     if(cards.length===1)paint(c);
   }catch(e){st.className="status err";st.textContent="儲存唔到："+(e&&e.name==="QuotaExceededError"?"手機空間不足。":"再試一次。")}
   $("save").disabled=false;
 };
 function fitTxt(){const t=$("txt");t.style.height="auto";t.style.height=Math.max(180,t.scrollHeight+2)+"px"}
 $("txt").addEventListener("input",fitTxt);
-$("clearDraft").onclick=()=>{ocrPrefix="";ocrSetValue=null;closePhoto();$("txt").value="";$("src").value="";$("saveStatus").textContent="";$("ocrStatus").textContent="";fitTxt()};
+$("clearDraft").onclick=()=>{ocrPrefix="";ocrSetValue=null;closePhoto();$("txt").value="";$("saveStatus").textContent="";$("ocrStatus").textContent="";fitTxt()};
 
 // ---------- 相片 → 文字（全部喺手機入面做，免費、唔上載） ----------
 const base=new URL("./",location.href).href;
@@ -891,7 +887,7 @@ $("testBtn").onclick=async()=>{
   await reload();
   const c=cards[Math.floor(Math.random()*cards.length)];
   const reg=await navigator.serviceWorker.ready;
-  await reg.showNotification(c&&c.source?c.source:"知識抽卡",{body:c?c.text.replace(/\s+/g," ").slice(0,180):"未有卡。",icon:"icons/icon-192.png",tag:"zhishi-random",data:{id:c?c.id:null}});
+  await reg.showNotification("知識抽卡",{body:c?c.text.replace(/\s+/g," ").slice(0,180):"未有卡。",icon:"icons/icon-192.png",tag:"zhishi-random",data:{id:c?c.id:null}});
   st.className="status";st.textContent="已發出測試通知。";
 };
 
