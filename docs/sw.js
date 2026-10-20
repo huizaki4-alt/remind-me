@@ -1,7 +1,7 @@
 // Service worker：離線快取 + 收推送時隨機抽一張卡做通知
 importScripts("./db.js");
 
-const VERSION = "v7";
+const VERSION = "v8";
 const SHELL = "zhishi-shell-" + VERSION;
 const RUNTIME = "zhishi-runtime";
 const SHELL_FILES = [
