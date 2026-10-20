@@ -26,9 +26,12 @@
 </defs>
 <rect x="0" y="4" width="200" height="40" fill="url(#cyl)"/>
 <rect x="0" y="4" width="200" height="40" fill="#fff" filter="url(#fib)"/>
-<rect x="0" y="15.6" width="200" height="1.4" fill="#fff" opacity=".55"/>
-<rect x="0" y="40.6" width="200" height=".8" fill="#5a3e1c" opacity=".35"/>
-<rect x="0" y="7.2" width="200" height=".6" fill="#fff4dc" opacity=".35"/>
-<rect x="0" y="4" width="200" height=".8" fill="#4a3214" opacity=".5"/>
-<rect x="0" y="43.2" width="200" height=".8" fill="#4a3214" opacity=".55"/>
+<rect x="0" y="15.4" width="200" height="1.2" fill="#fff" opacity=".6"/>
+<rect x="0" y="17" width="200" height="3" fill="#fff" opacity=".12"/>
+<rect x="0" y="7.2" width="200" height=".5" fill="#fff4dc" opacity=".35"/>
+<rect x="0" y="38.6" width="200" height=".55" fill="#6a4a22" opacity=".55"/>
+<rect x="0" y="39.15" width="200" height=".45" fill="#fff3d6" opacity=".55"/>
+<rect x="0" y="39.6" width="200" height="1.6" fill="#7d5a2e" opacity=".18"/>
+<rect x="0" y="4" width="200" height=".7" fill="#4a3214" opacity=".55"/>
+<rect x="0" y="43.3" width="200" height=".7" fill="#4a3214" opacity=".6"/>
 </svg>
