@@ -2,7 +2,7 @@
 <html lang="zh-Hant-HK">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>知識抽卡</title>
 <meta name="description" content="記低想記住嘅嘢，隨機抽一張重溫。">
 <link rel="manifest" href="manifest.webmanifest">
@@ -34,7 +34,7 @@
   --ink:#E7EAEE; --muted:#9AA4B1; --accent:#8FB0E3; --accent-ink:#111722; --line:#323A45;
   --parch:#CDB68A; --parch-edge:rgba(70,40,10,.5); color-scheme:dark}
 [hidden]{display:none!important}
-html,body{background:var(--desk);color:var(--ink);margin:0}
+html,body{background:var(--desk);color:var(--ink);margin:0;touch-action:manipulation}  /* 停用撳兩下放大 */
 body{font-family:var(--f-ui);font-size:15px;-webkit-text-size-adjust:100%;
   padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px))}
 .wrap{max-width:560px;margin:0 auto;padding-block:16px 40px;display:flex;flex-direction:column;gap:16px}
@@ -190,7 +190,7 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
         </div>
       </div>
     </div>
-    <p class="hint" style="text-align:center">版本 2026.10.19-6</p>
+    <p class="hint" style="text-align:center">版本 2026.10.20-7</p>
   </section>
 </div>
 
