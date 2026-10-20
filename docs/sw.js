@@ -1,16 +1,16 @@
 // Service worker：離線快取 + 收推送時隨機抽一張卡做通知
 importScripts("./db.js");
 
-const VERSION = "v14";
+const VERSION = "v15";
 const SHELL = "zhishi-shell-" + VERSION;
 const RUNTIME = "zhishi-runtime";
 const SHELL_FILES = [
-  "./", "./index.html", "./db.js", "./manifest.webmanifest", "./bg.svg",
+  "./", "./index.html", "./db.js", "./manifest.webmanifest", "./bg.svg?v=town2",
   "./icons/apple-touch-icon.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/badge-96.png",
 ];
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", e => {

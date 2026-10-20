@@ -15,7 +15,7 @@
 <meta name="theme-color" content="#5AA7EC">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Noto+Serif+TC:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Yusei+Magic&family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
 <style>
 /* Layout: one parchment card centred on a desk; tabs switch between 抽卡 / 加卡 / 全部 / 設定 */
 /* 異世界城鎮風：藍天白雲、石板街、木骨架屋、市集同遠處石塔做背景（bg.svg）；介面係深色橡木配金邊、深紅按鈕 */
@@ -24,16 +24,16 @@
   --ink:#F6EBD3; --muted:#D8C29A; --accent:#9E2328; --accent-ink:#FCE9BE; --line:rgba(214,176,96,.55);
   --glow:rgba(226,184,79,.5);
   --parch:#EEDDB8; --parch-edge:rgba(130,82,28,.38); --parch-ink:#3A2814; --parch-muted:#7A5F3E;
-  /* 全 app 用 Yuji Syuku 毛筆字；佢冇嘅字（部分繁體字）自動用 Noto Serif TC 補上 */
+  /* 羊皮紙卡用 Yuji Syuku 毛筆字；卡以外用 Yusei Magic。佢哋冇嘅繁體字自動用 Noto 字體補上 */
   --f-card:"Yuji Syuku","Noto Serif TC","Songti TC","PMingLiU",serif;
-  --f-ui:"Yuji Syuku","Noto Serif TC","Songti TC","PingFang TC",serif;
+  --f-ui:"Yusei Magic","Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
   color-scheme:dark;
 }
 [hidden]{display:none!important}
 html,body{color:var(--ink);margin:0;touch-action:manipulation}  /* 停用撳兩下放大 */
 html{background:var(--desk)}
 body{background:transparent}   /* 唔好遮住後面嘅背景圖 */
-.bg{position:fixed;inset:0;z-index:-1;background:#5AA7EC url(bg.svg) center bottom/cover no-repeat;pointer-events:none}
+.bg{position:fixed;inset:0;z-index:-1;background:#5AA7EC url(bg.svg?v=town2) center bottom/cover no-repeat;pointer-events:none}
 nav,.panel{-webkit-backdrop-filter:blur(10px) saturate(1.2);backdrop-filter:blur(10px) saturate(1.2)}
 body{font-family:var(--f-ui);font-size:15px;-webkit-text-size-adjust:100%;
   padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(16px,env(safe-area-inset-left,0px))}
@@ -41,14 +41,14 @@ body{font-family:var(--f-ui);font-size:15px;-webkit-text-size-adjust:100%;
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 4px 14px rgba(0,0,0,.3)}
 #v-add{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 4px 14px rgba(0,0,0,.3)}
 header,#v-add{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-h1{font-family:var(--f-card);font-size:24px;font-weight:400;margin:0;letter-spacing:.12em;color:#F1CF7A;text-shadow:0 1px 0 #6b4a12,0 2px 6px rgba(0,0,0,.6)}
+h1{font-family:var(--f-ui);font-size:24px;font-weight:400;margin:0;letter-spacing:.12em;color:#F1CF7A;text-shadow:0 1px 0 #6b4a12,0 2px 6px rgba(0,0,0,.6)}
 h1::before,h1::after{content:"⚜";font-size:.7em;color:#D6B060;margin:0 .35em;vertical-align:.12em}
 .count,label.lab,section>.hint,section>.status,.field>.hint{color:#FBF1DA;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 8px rgba(20,14,8,.9)}
 nav,.panel,.item,.btn,textarea,input[type=text],input[type=search],.crop{border-color:var(--line)!important}
 nav,.panel,.item{box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 4px 14px rgba(0,0,0,.35)}
 .btn.primary,nav button[aria-selected="true"]{background:linear-gradient(#B42A30,#86181D)!important;border:1px solid #D6B060!important;color:var(--accent-ink)!important;text-shadow:0 1px 1px rgba(0,0,0,.5)}
 .item .b button{color:#E9C77A!important}
-h2{font-family:var(--f-card);color:#F1CF7A;letter-spacing:.06em}
+h2{font-family:var(--f-ui);color:#F1CF7A;letter-spacing:.06em}
 h2{font-size:15px;margin:0}
 .count{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 nav{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px;position:sticky;top:env(safe-area-inset-top,0px);z-index:2}
@@ -65,7 +65,8 @@ section{display:flex;flex-direction:column;gap:14px}
   position:relative;padding:28px 22px 20px;min-height:260px;display:flex;flex-direction:column;gap:14px}
 .card .meta{font-size:12px;color:var(--parch-muted);letter-spacing:.04em;min-height:20px}
 .card .text{font-family:var(--f-card);font-size:19px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere;flex:1;margin-top:4px}
-.card.empty .text{font-family:var(--f-ui);font-size:15px;color:var(--parch-muted)}
+.card.empty .text{font-family:var(--f-card);font-size:15px;color:var(--parch-muted)}
+.card,.card textarea,.card input{font-family:var(--f-card)}
 .card textarea{background:rgba(255,255,255,.35);border-color:var(--parch-edge);color:var(--parch-ink)}
 .card input[type=text]{background:rgba(255,255,255,.35);border-color:var(--parch-edge);color:var(--parch-ink)}
 
@@ -77,7 +78,7 @@ section{display:flex;flex-direction:column;gap:14px}
 .btn.sure{border-color:var(--redline);font-weight:700}
 label.lab{font-size:12px;color:var(--muted);letter-spacing:.06em}
 textarea,input[type=text],input[type=search]{width:100%;box-sizing:border-box;font:inherit;font-size:16px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px 12px}
-textarea{min-height:180px;font-family:var(--f-card);font-size:17px;line-height:1.8;resize:vertical}
+textarea{min-height:180px;font-family:var(--f-ui);font-size:17px;line-height:1.8;resize:vertical}
 textarea.code{min-height:90px;font-family:ui-monospace,Menlo,monospace;font-size:12px;line-height:1.4;word-break:break-all}
 .field{display:flex;flex-direction:column;gap:6px}
 .status{font-size:13px;color:var(--muted);min-height:18px;line-height:1.5}
@@ -85,7 +86,7 @@ textarea.code{min-height:90px;font-family:ui-monospace,Menlo,monospace;font-size
 progress{width:100%;height:6px;accent-color:var(--accent)}
 .list{display:flex;flex-direction:column;gap:10px}
 .item{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
-.item .t{font-family:var(--f-card);line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.item .t{font-family:var(--f-ui);line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
 .item .b{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
 .item .b button{border:0;background:none;font:inherit;font-size:14px;color:var(--accent);cursor:pointer;padding:6px 8px}
 .item .b button.sure{color:var(--redline);font-weight:700}
@@ -201,7 +202,7 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
         </div>
       </div>
     </div>
-    <p class="hint" style="text-align:center">版本 2026.10.20-14</p>
+    <p class="hint" style="text-align:center">版本 2026.10.20-15</p>
   </section>
 </div>
 
