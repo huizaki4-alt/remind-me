@@ -48,14 +48,14 @@ GitHub Pages 喺**免費帳戶只支援 public repo**。repo 入面冇你張卡�
    - Secret：貼上設定碼
 4. 想即刻試：「Actions」→「隨機卡通知」→「Run workflow」
 
-之後香港時間 9am–10pm 每個鐘有 30% 機會推一張，大約每日 3–5 張，時間唔固定。想多啲／少啲，改 `random-card.yml` 入面嘅 `CHANCE`（0 至 1）；想改時段就改 `cron`（UTC 時間）。
+之後每日喺英國時間 9am–10pm 之間，隨機揀 3 個時間（相隔最少 2 個鐘）推送，自動跟夏令／冬令時間。GitHub 嘅定時工作經常延遲或者跳過，所以每 20 分鐘檢查一次，過咗預定時間未發就會補發。想改數量、時段或者時區，改 `random-card.yml` 入面嘅 `PER_DAY`、`START_HOUR`、`END_HOUR`、`TZ_NAME`。
 
 推送內容只係一個「抽卡」訊號，**卡嘅文字唔會經 GitHub**：手機收到之後喺本地自己抽一張顯示。
 
 ## 費用
 
 - GitHub Pages、public repo 嘅 Actions：免費、冇上限
-- private repo 嘅 Actions：每月 2000 分鐘免費，呢個 workflow 每月大約用 420 分鐘；冇設付款方式嘅話，超額只會停，唔會收錢
+- private repo 嘅 Actions：每月 2000 分鐘免費，呢個 workflow 每月最多大約用 1400 分鐘；冇設付款方式嘅話，超額只會停，唔會收錢
 - 文字辨識喺手機入面運行，冇 API 費用
 
 ## 注意

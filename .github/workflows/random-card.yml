@@ -1,19 +1,25 @@
 name: 隨機卡通知
 
-# 香港時間 9am–10pm 每個鐘檢查一次，每次有 CHANCE 機會推送 → 每日大約 3–5 張，時間唔固定。
-# GitHub 免費額度內運行，唔會收費。
+# 每日喺英國時間 9am–10pm 隨機揀 3 個時間（相隔最少 2 個鐘）推送一張隨機卡。
+# GitHub 嘅定時工作經常延遲或者被跳過，所以每 20 分鐘檢查一次；過咗預定時間未發就補發。
+# 「今日發咗幾多」記喺 Actions cache。public repo 嘅 Actions 免費，唔會收費。
 on:
   schedule:
-    - cron: "17 1-14 * * *"
+    - cron: "*/20 7-22 * * *"   # UTC；涵蓋英國夏令（UTC+1）同冬令（UTC+0）嘅 9am–10pm
   workflow_dispatch:
     inputs:
       force:
-        description: "即刻推送一次（唔理機率）"
+        description: "即刻推送一次（唔計入每日數量）"
         type: boolean
         default: true
 
 permissions:
   contents: read
+  actions: write   # 讀寫 cache
+
+concurrency:
+  group: random-card
+  cancel-in-progress: false
 
 jobs:
   push:
@@ -23,14 +29,28 @@ jobs:
       - uses: actions/checkout@v4
         with:
           sparse-checkout: push
+      - uses: actions/cache/restore@v4
+        with:
+          path: push/state
+          key: push-state-${{ github.run_id }}
+          restore-keys: push-state-
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
       - run: npm ci --no-audit --no-fund
         working-directory: push
       - run: node send.js
         working-directory: push
         env:
           PUSH_CONFIG: ${{ secrets.PUSH_CONFIG }}
-          CHANCE: "0.3"
+          TZ_NAME: Europe/London
+          PER_DAY: "3"
+          START_HOUR: "9"
+          END_HOUR: "22"
+          MIN_GAP_MIN: "120"
           FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force }}
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: push/state
+          key: push-state-${{ github.run_id }}
