@@ -83,7 +83,13 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
 .item .b .acts{white-space:nowrap}
 .crop{position:relative;width:fit-content;max-width:100%;margin:0 auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:8px;overflow:hidden;background:var(--card);border:1px solid var(--line);line-height:0}
 .crop img{max-width:100%;max-height:60vh;width:auto;height:auto;display:block;pointer-events:none;-webkit-touch-callout:none}
-.crop .sel{position:absolute;border:2px solid var(--accent);background:rgba(43,76,126,.15);box-shadow:0 0 0 9999px rgba(0,0,0,.35);pointer-events:none}
+.crop .sel{position:absolute;box-sizing:border-box;border:2px solid #fff;pointer-events:none}
+.crop .shade{position:absolute;background:rgba(0,0,0,.6);pointer-events:none}
+.crop .sel i{position:absolute;width:22px;height:22px;border:4px solid #fff;box-sizing:border-box}
+.crop .sel .nw{left:-3px;top:-3px;border-right:0;border-bottom:0}
+.crop .sel .ne{right:-3px;top:-3px;border-left:0;border-bottom:0}
+.crop .sel .sw{left:-3px;bottom:-3px;border-right:0;border-top:0}
+.crop .sel .se{right:-3px;bottom:-3px;border-left:0;border-top:0}
 .seg{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--muted)}
 .seg span{margin-right:6px}
 .seg button{border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;padding:7px 12px;border-radius:7px;cursor:pointer}
@@ -125,10 +131,8 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
       <input type="file" id="album" accept="image/*" hidden>
     </div>
     <div id="photoPanel" class="field" hidden>
-      <div class="crop" id="cropBox"><img id="cropImg" alt="揀咗嘅相（只喺手機記憶體，唔會儲存）"><div class="sel" id="cropSel" hidden></div></div>
-      <div class="seg" id="dirSeg" role="group" aria-label="文字排版">
-        <span>排版</span><button data-dir="auto" aria-pressed="true">自動</button><button data-dir="h" aria-pressed="false">橫排</button><button data-dir="v" aria-pressed="false">直排</button>
-      </div>
+      <div class="crop" id="cropBox"><img id="cropImg" alt="揀咗嘅相（只喺手機記憶體，唔會儲存）"><div class="shade" hidden></div><div class="shade" hidden></div><div class="shade" hidden></div><div class="shade" hidden></div><div class="sel" id="cropSel" hidden><i class="nw"></i><i class="ne"></i><i class="sw"></i><i class="se"></i></div></div>
+      <p class="hint" style="text-align:center">拉四個角剪裁大細，拉框中間可以移動</p>
       <div class="row"><button class="btn primary" id="ocrGo">轉文字</button><button class="btn" id="ocrCancel">收起相片</button></div>
     </div>
     <progress id="ocrProg" max="1" value="0" hidden></progress>
@@ -187,7 +191,7 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
         </div>
       </div>
     </div>
-    <p class="hint" style="text-align:center">版本 2026.10.20-9</p>
+    <p class="hint" style="text-align:center">版本 2026.10.20-10</p>
   </section>
 </div>
 
@@ -330,14 +334,13 @@ const base=new URL("./",location.href).href;
 let ocrWorker=null, ocrLang=null, ocrBusy=false, segMode=false;
 let hLang="chi_tra+eng";   // 橫排用嘅語言；主要係中文嘅頁就唔用英文模型，免得中文字被讀成英文字母
 let photo=null;        // {url, img}：只喺記憶體，收起或者儲存就丟棄
-let crop=null;         // 揀咗嘅範圍（顯示座標）
-let ocrDir="auto";     // auto | h | v
+let crop=null;         // 剪裁範圍（佔張相嘅比例 0–1）
 let ocrPrefix="", ocrSetValue=null;      // 轉文字之前框入面原有嘅字，再轉一次時會換走上次結果
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("load"));document.head.append(s)})}
 const stageText={"loading tesseract core":"載入辨識程式","initializing tesseract":"準備緊","loading language traineddata":"載入辨識資料","initializing api":"準備緊","recognizing text":"辨識緊"};
 // 一個 worker 輪流用橫排／直排資料，慳 iPhone 記憶體
 async function getWorker(dir,psm){
-  const lang=dir==="v"?"chi_tra_vert":hLang;
+  const lang=hLang;
   if(!ocrWorker){
     if(!window.Tesseract)await loadScript("vendor/tesseract/tesseract.min.js");
     ocrWorker=await Tesseract.createWorker(lang.split("+"),1,{
@@ -363,9 +366,8 @@ async function getWorker(dir,psm){
 function srcRect(){
   const img=photo.img,nw=img.naturalWidth,nh=img.naturalHeight;
   if(!crop)return{sx:0,sy:0,sw:nw,sh:nh};
-  const r=nw/img.clientWidth;
-  const sx=Math.max(0,Math.round(crop.x*r)),sy=Math.max(0,Math.round(crop.y*r));
-  return{sx,sy,sw:Math.min(nw-sx,Math.round(crop.w*r)),sh:Math.min(nh-sy,Math.round(crop.h*r))};
+  const sx=Math.max(0,Math.round(crop.x*nw)),sy=Math.max(0,Math.round(crop.y*nh));
+  return{sx,sy,sw:Math.max(1,Math.min(nw-sx,Math.round(crop.w*nw))),sh:Math.max(1,Math.min(nh-sy,Math.round(crop.h*nh)))};
 }
 // 「工作圖」：原相（或者拉框範圍），拉直之後會換成轉正咗嘅畫布
 function makeSrc(){return{el:photo.img,...srcRect()}}
@@ -569,22 +571,6 @@ function stripCanvas([a,b,e0,e1,cs],dir,R,px,t){
   removeBlobs(ctx,cv.width,cv.height,px*2.5);
   return cv;
 }
-// 直行切成一隻隻字，再橫住排成一行，俾橫排模型再讀一次（兩個模型錯嘅字唔同，可以互補）
-function cellsToLine(cv,P){
-  const W=cv.width,H=cv.height,d=cv.getContext("2d").getImageData(0,0,W,H).data,row=new Uint16Array(H);
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(d[(y*W+x)<<2]<128)row[y]++;
-  const runs=[];let st=-1;
-  for(let y=0;y<=H;y++){const k=y<H&&row[y]>0;if(k&&st<0)st=y;if(!k&&st>=0){runs.push([st,y]);st=-1}}
-  const cells=[];
-  for(const r of runs){const c=cells[cells.length-1];if(c&&r[1]-c[0]<=P*1.12)c[1]=r[1];else cells.push([r[0],r[1]])}
-  if(!cells.length||cells.length>200)return null;
-  const gap=Math.round(P*.25),lh=Math.round(P*1.6);
-  const L=document.createElement("canvas");L.width=cells.length*(P+gap)+gap;L.height=lh;
-  const g=L.getContext("2d");g.fillStyle="#fff";g.fillRect(0,0,L.width,lh);
-  let x=gap;
-  for(const [y0,y1] of cells){const h=y1-y0;g.drawImage(cv,0,y0,W,h,x+Math.round((P-W)/2),Math.round((lh-h)/2),W,h);x+=P+gap}
-  return L;
-}
 // 對齊兩串字（編輯距離），回傳 A 每個位置對應 B 嘅位置（冇就 -1）
 function alignSyms(A,B){
   const n=A.length,m=B.length,D=[];
@@ -636,11 +622,11 @@ function vote(cands){
   const conf=cands.reduce((t,c)=>t+c.conf,0)/cands.length;
   return{text:tidy(text),conf};
 }
-// 逐行精讀：每行用幾種字大小／黑白化讀；直排再加橫排模型讀，最後投票
+// 逐行精讀：每行用幾種字大小／黑白化讀，最後投票
 async function refine(segs,dir,R,step){
-  const cands=segs.map(()=>[]),rounds=dir==="v"?2:1;
+  const cands=segs.map(()=>[]);
   for(let i=0;i<segs.length;i++){
-    step(i,segs.length*rounds);
+    step(i,segs.length);
     const block=segs[i][4]&&segs[i][1]-segs[i][0]>segs[i][4]*2.6;   // 分唔開嘅幾行
     for(const [px,t] of SEG_VARIANTS){
       const cv=stripCanvas(segs[i],dir,R,px,t);
@@ -648,39 +634,38 @@ async function refine(segs,dir,R,step){
       cv.width=cv.height=0;
     }
   }
-  if(dir==="v"){   // 第二輪：換橫排模型（一次過換，慳時間）
-    const keep=hLang;
-    for(let i=0;i<segs.length;i++){
-      step(segs.length+i,segs.length*2);
-      if(segs[i][4]&&segs[i][1]-segs[i][0]>segs[i][4]*2.6)continue;
-      for(const t of [.12,.15,.2]){
-        const cv=stripCanvas(segs[i],"v",R,70,t),line=cellsToLine(cv,70);
-        if(line){cands[i].push(await recognize(line,"h","7"));line.width=line.height=0}
-        cv.width=cv.height=0;
-      }
-    }
-    hLang=keep;
-  }
   return cands.map(vote);
 }
-// 揀相 → 顯示預覽，可以拉框揀範圍
+// 揀相 → 顯示預覽，四角可以剪裁
+function drawCrop(){
+  const sel=$("cropSel"),img=$("cropImg"),shades=document.querySelectorAll("#cropBox .shade");
+  if(!crop||!img.clientWidth){sel.hidden=true;shades.forEach(s=>s.hidden=true);return}
+  const W=img.clientWidth,H=img.clientHeight,x=crop.x*W,y=crop.y*H,w=crop.w*W,h=crop.h*H;
+  Object.assign(sel.style,{left:x+"px",top:y+"px",width:w+"px",height:h+"px"});
+  sel.hidden=false;
+  // 框外四邊變暗：上、下、左、右
+  [[0,0,W,y],[0,y+h,W,H-y-h],[0,y,x,h],[x+w,y,W-x-w,h]].forEach(([l,t,ww,hh],i)=>{
+    Object.assign(shades[i].style,{left:l+"px",top:t+"px",width:Math.max(0,ww)+"px",height:Math.max(0,hh)+"px"});shades[i].hidden=false;
+  });
+}
+addEventListener("resize",drawCrop);
 function openPhoto(inp){
   const f=inp.files[0];inp.value="";if(!f||ocrBusy)return;
   closePhoto();
   const url=URL.createObjectURL(f);
-  const img=$("cropImg");img.src=url;photo={url,img};crop=null;$("cropSel").hidden=true;
+  const img=$("cropImg");img.src=url;photo={url,img};crop={x:0,y:0,w:1,h:1};$("cropSel").hidden=true;
   // 上一張相轉出嚟、未改過嘅字會被新結果取代；自己打或者改過嘅字就保留
   const cur=$("txt").value.trim();
   if(cur!==ocrSetValue)ocrPrefix=cur;
 
   $("photoPanel").hidden=false;$("ocrStatus").className="status";
-  $("ocrStatus").textContent="想淨係轉某一段，可以用手指喺相上拉框；唔拉就轉成張。影相時對正書頁、影近啲、避開反光，會準好多。";
-  img.onload=()=>$("photoPanel").scrollIntoView({block:"nearest",behavior:"smooth"});
+  $("ocrStatus").textContent="剪走唔要嘅部分（例如陰影、手寫字），淨係留低想轉嘅字，會準好多。";
+  img.onload=()=>{drawCrop();$("photoPanel").scrollIntoView({block:"nearest",behavior:"smooth"})};
   img.onerror=()=>{closePhoto();$("ocrStatus").className="status err";$("ocrStatus").textContent="開唔到呢張相，換一張試下。"};
 }
 function closePhoto(){
   if(photo){URL.revokeObjectURL(photo.url);photo.img.removeAttribute("src");photo=null}
-  crop=null;$("cropSel").hidden=true;$("photoPanel").hidden=true;
+  crop=null;drawCrop();$("photoPanel").hidden=true;
 }
 async function runOcr(){
   if(!photo||ocrBusy)return;
@@ -691,14 +676,7 @@ async function runOcr(){
   hLang="chi_tra+eng";
   try{
     src=makeSrc();cv=toCanvas(src);
-    let best;
-    if(ocrDir==="auto"){
-      best=await recognize(cv,"h");
-      if(best.score<70){                       // 橫排讀得唔好，試埋直排
-        const v=await recognize(cv,"v");
-        if(v.score>best.score)best=v;
-      }
-    }else best=await recognize(cv,ocrDir);
+    let best=await recognize(cv,"h");   // 一律當橫排
     // 第二步：逐行精讀
     let segs=null;
     if(best.text){
@@ -708,7 +686,8 @@ async function runOcr(){
     }
     if(segs){
       const t=best.text.replace(/\s/g,""),cjk=(t.match(new RegExp("["+CJK+"]","g"))||[]).length;
-      if(cjk>=t.length*.8)hLang="chi_tra";
+      const latin=(t.match(/[A-Za-z]/g)||[]).length;
+      if(cjk>=(cjk+latin)*.75)hLang="chi_tra";   // 中文字遠多過英文字母
       segMode=true;
       const res=await refine(segs,best.dir,src,(i,n)=>{prog.value=i/n;st.textContent="精讀緊… "+Math.round(100*i/n)+"%"});
       segMode=false;
@@ -724,19 +703,19 @@ async function runOcr(){
         out.push(r.text+(lens[i]<maxLen*.9||indented(i+1)?"\n\n":""));confSum+=r.conf;
       });
       const conf=out.length?confSum/out.length:0;
-      if(out.length&&(conf>=best.conf-5||skipped)){
+      if(out.length&&(conf>=best.conf-15||skipped)){   // 逐行精讀通常較準，除非明顯差咗
         const text=tidy(out.join("\n")).replace(/^[，、。：；！？,.:;\s]+/,"");
         best={...best,text,conf,score:score(text,conf)};
       }
     }
-    if(!best.text){st.className="status err";st.textContent="睇唔到文字。試下拉框淨係揀文字部分，或者影清啲、正啲。";}
+    if(!best.text){st.className="status err";st.textContent="睇唔到文字。試下剪裁淨係留低文字部分，或者影清啲、正啲。";}
     else{
       $("txt").value=(ocrPrefix?ocrPrefix+"\n\n":"")+best.text;
       ocrSetValue=$("txt").value.trim();fitTxt();
       $("txt").scrollIntoView({block:"nearest",behavior:"smooth"});
-      const how=(best.dir==="v"?"（當直排讀）":"")+(skipped?"，略過咗 "+skipped+" 行睇唔清嘅字（可能係手寫字或者陰影）":"");
+      const how=skipped?"，略過咗 "+skipped+" 行睇唔清嘅字（可能係手寫字或者陰影）":"";
       st.textContent=best.score<55
-        ?"轉好咯"+how+"，但好多字可能唔啱。可以拉框揀細啲範圍、轉換橫排／直排，再撳「再轉一次」。"
+        ?"轉好咯"+how+"，但好多字可能唔啱。可以剪細啲範圍，再撳「再轉一次」。"
         :"轉好咯"+how+"，睇一睇、改一改再儲存。唔啱可以改範圍再轉。";
       $("ocrGo").textContent="再轉一次";
     }
@@ -751,22 +730,43 @@ async function runOcr(){
     for(const id of ["photoBtn","albumBtn","ocrGo","ocrCancel"])$(id).disabled=false;
   }
 }
-// 拉框
+// 剪裁：拉四角改大細，拉中間移動，喺框外拉就重新畫過
 (()=>{
-  const box=$("cropBox"),sel=$("cropSel");let start=null;
-  const pos=e=>{const r=$("cropImg").getBoundingClientRect();return{x:Math.min(Math.max(e.clientX-r.left,0),r.width),y:Math.min(Math.max(e.clientY-r.top,0),r.height)}};
-  box.addEventListener("pointerdown",e=>{if(!photo||ocrBusy)return;start=pos(e);box.setPointerCapture(e.pointerId);e.preventDefault()});
-  box.addEventListener("pointermove",e=>{
-    if(!start)return;const p=pos(e);
-    crop={x:Math.min(start.x,p.x),y:Math.min(start.y,p.y),w:Math.abs(p.x-start.x),h:Math.abs(p.y-start.y)};
-    Object.assign(sel.style,{left:crop.x+"px",top:crop.y+"px",width:crop.w+"px",height:crop.h+"px"});sel.hidden=false;
+  const box=$("cropBox");let drag=null;
+  const pos=e=>{const r=$("cropImg").getBoundingClientRect();return{x:Math.min(Math.max(e.clientX-r.left,0),r.width)/r.width,y:Math.min(Math.max(e.clientY-r.top,0),r.height)/r.height,W:r.width,H:r.height}};
+  box.addEventListener("pointerdown",e=>{
+    if(!photo||ocrBusy||!crop)return;
+    const p=pos(e),c=crop,gx=36/p.W,gy=36/p.H;   // 角位感應範圍約 36px
+    const nearL=Math.abs(p.x-c.x)<gx,nearR=Math.abs(p.x-(c.x+c.w))<gx,nearT=Math.abs(p.y-c.y)<gy,nearB=Math.abs(p.y-(c.y+c.h))<gy;
+    let mode;
+    if((nearL||nearR)&&(nearT||nearB))mode=(nearT?"n":"s")+(nearL?"w":"e");
+    else if(p.x>c.x&&p.x<c.x+c.w&&p.y>c.y&&p.y<c.y+c.h)mode="move";
+    else mode="new";
+    drag={mode,p0:p,c0:{...c}};
+    box.setPointerCapture(e.pointerId);e.preventDefault();
   });
-  const end=()=>{if(!start)return;start=null;if(!crop||crop.w<24||crop.h<24){crop=null;sel.hidden=true}};
+  box.addEventListener("pointermove",e=>{
+    if(!drag)return;
+    const p=pos(e),{mode,p0,c0}=drag,mw=40/p.W,mh=40/p.H;   // 最細 40px
+    let x0=c0.x,y0=c0.y,x1=c0.x+c0.w,y1=c0.y+c0.h;
+    if(mode==="move"){
+      const dx=Math.min(Math.max(p.x-p0.x,-x0),1-x1),dy=Math.min(Math.max(p.y-p0.y,-y0),1-y1);
+      x0+=dx;x1+=dx;y0+=dy;y1+=dy;
+    }else if(mode==="new"){
+      x0=Math.min(p0.x,p.x);x1=Math.max(p0.x,p.x);y0=Math.min(p0.y,p.y);y1=Math.max(p0.y,p.y);
+      if(x1-x0<mw||y1-y0<mh)return;
+    }else{
+      if(mode.includes("w"))x0=Math.min(p.x,x1-mw);
+      if(mode.includes("e"))x1=Math.max(p.x,x0+mw);
+      if(mode.includes("n"))y0=Math.min(p.y,y1-mh);
+      if(mode.includes("s"))y1=Math.max(p.y,y0+mh);
+    }
+    crop={x:Math.max(0,x0),y:Math.max(0,y0),w:Math.min(1,x1)-Math.max(0,x0),h:Math.min(1,y1)-Math.max(0,y0)};
+    drawCrop();
+  });
+  const end=()=>{drag=null};
   box.addEventListener("pointerup",end);box.addEventListener("pointercancel",end);
 })();
-for(const b of document.querySelectorAll("#dirSeg button"))b.onclick=()=>{
-  ocrDir=b.dataset.dir;for(const x of document.querySelectorAll("#dirSeg button"))x.setAttribute("aria-pressed",x===b);
-};
 $("photoBtn").onclick=()=>$("photo").click();
 $("albumBtn").onclick=()=>$("album").click();
 $("photo").onchange=()=>{openPhoto($("photo"));$("ocrGo").textContent="轉文字"};
