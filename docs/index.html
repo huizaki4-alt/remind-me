@@ -13,7 +13,9 @@
 <meta name="apple-mobile-web-app-title" content="知識抽卡">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#5AA7EC">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Noto+Serif+TC:wght@500;700&display=swap">
 <style>
 /* Layout: one parchment card centred on a desk; tabs switch between 抽卡 / 加卡 / 全部 / 設定 */
 /* 異世界城鎮風：藍天白雲、石板街、木骨架屋、市集同遠處石塔做背景（bg.svg）；介面係深色橡木配金邊、深紅按鈕 */
@@ -22,8 +24,9 @@
   --ink:#F6EBD3; --muted:#D8C29A; --accent:#9E2328; --accent-ink:#FCE9BE; --line:rgba(214,176,96,.55);
   --glow:rgba(226,184,79,.5);
   --parch:#EEDDB8; --parch-edge:rgba(130,82,28,.38); --parch-ink:#3A2814; --parch-muted:#7A5F3E;
-  --f-card:"Noto Serif TC","Songti TC","PMingLiU",serif;
-  --f-ui:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  /* 全 app 用 Yuji Syuku 毛筆字；佢冇嘅字（部分繁體字）自動用 Noto Serif TC 補上 */
+  --f-card:"Yuji Syuku","Noto Serif TC","Songti TC","PMingLiU",serif;
+  --f-ui:"Yuji Syuku","Noto Serif TC","Songti TC","PingFang TC",serif;
   color-scheme:dark;
 }
 [hidden]{display:none!important}
@@ -38,7 +41,7 @@ body{font-family:var(--f-ui);font-size:15px;-webkit-text-size-adjust:100%;
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 4px 14px rgba(0,0,0,.3)}
 #v-add{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 4px 14px rgba(0,0,0,.3)}
 header,#v-add{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-h1{font-family:var(--f-card);font-size:23px;font-weight:700;margin:0;letter-spacing:.12em;color:#F1CF7A;text-shadow:0 1px 0 #6b4a12,0 2px 6px rgba(0,0,0,.6)}
+h1{font-family:var(--f-card);font-size:24px;font-weight:400;margin:0;letter-spacing:.12em;color:#F1CF7A;text-shadow:0 1px 0 #6b4a12,0 2px 6px rgba(0,0,0,.6)}
 h1::before,h1::after{content:"⚜";font-size:.7em;color:#D6B060;margin:0 .35em;vertical-align:.12em}
 .count,label.lab,section>.hint,section>.status,.field>.hint{color:#FBF1DA;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 8px rgba(20,14,8,.9)}
 nav,.panel,.item,.btn,textarea,input[type=text],input[type=search],.crop{border-color:var(--line)!important}
@@ -198,7 +201,7 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
         </div>
       </div>
     </div>
-    <p class="hint" style="text-align:center">版本 2026.10.20-13</p>
+    <p class="hint" style="text-align:center">版本 2026.10.20-14</p>
   </section>
 </div>
 
