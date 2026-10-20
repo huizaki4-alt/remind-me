@@ -1,11 +1,11 @@
 // Service worker：離線快取 + 收推送時隨機抽一張卡做通知
 importScripts("./db.js");
 
-const VERSION = "v17";
+const VERSION = "v18";
 const SHELL = "zhishi-shell-" + VERSION;
 const RUNTIME = "zhishi-runtime";
 const SHELL_FILES = [
-  "./", "./index.html", "./db.js", "./manifest.webmanifest", "./bg.svg?v=town2",
+  "./", "./index.html", "./db.js", "./manifest.webmanifest", "./bg.svg?v=town2", "./scroll-cap-l.svg?v=1", "./scroll-cap-r.svg?v=1", "./scroll-mid.svg?v=1",
   "./icons/apple-touch-icon.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/badge-96.png",
 ];
 
