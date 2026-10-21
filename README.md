@@ -50,6 +50,22 @@ GitHub Pages 喺**免費帳戶只支援 public repo**。repo 入面冇你張卡�
 
 之後每日喺英國時間 9am–10pm 之間，隨機揀 3 個時間（相隔最少 2 個鐘）推送，自動跟夏令／冬令時間。GitHub 嘅定時工作經常延遲或者跳過，所以每 20 分鐘檢查一次，過咗預定時間未發就會補發。想改數量、時段或者時區，改 `random-card.yml` 入面嘅 `PER_DAY`、`START_HOUR`、`END_HOUR`、`TZ_NAME`。
 
+### （建議）用 cron-job.org 準時觸發
+
+GitHub 免費嘅定時工作好唔準，有時幾個鐘都唔運行。可以用免費嘅 cron-job.org 定時叫 GitHub 運行，咁就準時：
+
+1. GitHub →「Settings」（個人設定）→「Developer settings」→「Personal access tokens」→「Fine-grained tokens」→「Generate new token」
+   - Repository access：Only select repositories → `remind-me`
+   - Permissions → Repository permissions → **Actions：Read and write**
+   - 產生後複製個 token（`github_pat_…`）
+2. 去 https://cron-job.org 免費註冊 →「Create cronjob」
+   - URL：`https://api.github.com/repos/huizaki4-alt/remind-me/actions/workflows/random-card.yml/dispatches`
+   - Schedule：每 20 分鐘，時區揀 Europe/London
+   - Advanced → Request method：**POST**
+   - Headers：`Authorization: Bearer 你個token`、`Accept: application/vnd.github+json`
+   - Request body：`{"ref":"main","inputs":{"force":"false"}}`
+3. 儲存。之後就算 GitHub 自己唔運行，cron-job.org 都會準時叫佢檢查；每日仍然只會發 3 張。
+
 推送內容只係一個「抽卡」訊號，**卡嘅文字唔會經 GitHub**：手機收到之後喺本地自己抽一張顯示。
 
 ## 費用
