@@ -5,7 +5,7 @@ name: 隨機卡通知
 # 「今日發咗幾多」記喺 Actions cache。public repo 嘅 Actions 免費，唔會收費。
 on:
   schedule:
-    - cron: "*/20 7-22 * * *"   # UTC；涵蓋英國夏令（UTC+1）同冬令（UTC+0）嘅 9am–10pm
+    - cron: "13,33,53 7-22 * * *"   # UTC；涵蓋英國夏令（UTC+1）同冬令（UTC+0）嘅 9am–10pm；避開最繁忙嘅整點
   workflow_dispatch:
     inputs:
       force:
