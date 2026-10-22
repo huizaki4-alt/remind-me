@@ -44,7 +44,7 @@ header,#v-add{-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 h1{font-family:var(--f-ui);font-size:24px;font-weight:400;margin:0;letter-spacing:.12em;color:#F1CF7A;text-shadow:0 1px 0 #6b4a12,0 2px 6px rgba(0,0,0,.6)}
 h1::before,h1::after{content:"⚜";font-size:.7em;color:#D6B060;margin:0 .35em;vertical-align:.12em}
 .count,label.lab,section>.hint,section>.status,.field>.hint{color:#FBF1DA;text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 8px rgba(20,14,8,.9)}
-nav,.panel,.item,.btn,textarea,input[type=text],input[type=search],.crop{border-color:var(--line)!important}
+nav,.panel,.item,.btn,textarea,input[type=text],input[type=search]{border-color:var(--line)!important}
 nav,.panel,.item{box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 4px 14px rgba(0,0,0,.35)}
 .btn.primary,nav button[aria-selected="true"]{background:linear-gradient(#B42A30,#86181D)!important;border:1px solid #D6B060!important;color:var(--accent-ink)!important;text-shadow:0 1px 1px rgba(0,0,0,.5)}
 .item .b button{color:#E9C77A!important}
@@ -96,7 +96,6 @@ textarea.code{min-height:90px;font-family:ui-monospace,Menlo,monospace;font-size
 .field{display:flex;flex-direction:column;gap:6px}
 .status{font-size:13px;color:var(--muted);min-height:18px;line-height:1.5}
 .status.err{color:var(--redline)}
-progress{width:100%;height:6px;accent-color:var(--accent)}
 .list{display:flex;flex-direction:column;gap:10px}
 .item{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
 .item .t{font-family:var(--f-ui);line-height:1.7;white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
@@ -104,19 +103,6 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
 .item .b button{border:0;background:none;font:inherit;font-size:14px;color:var(--accent);cursor:pointer;padding:6px 8px}
 .item .b button.sure{color:var(--redline);font-weight:700}
 .item .b .acts{white-space:nowrap}
-.crop{position:relative;width:fit-content;max-width:100%;margin:0 auto;touch-action:none;user-select:none;-webkit-user-select:none;border-radius:8px;overflow:hidden;background:var(--card);border:1px solid var(--line);line-height:0}
-.crop img{max-width:100%;max-height:60vh;width:auto;height:auto;display:block;pointer-events:none;-webkit-touch-callout:none}
-.crop .sel{position:absolute;box-sizing:border-box;border:2px solid #fff;pointer-events:none}
-.crop .shade{position:absolute;background:rgba(0,0,0,.6);pointer-events:none}
-.crop .sel i{position:absolute;width:22px;height:22px;border:4px solid #fff;box-sizing:border-box}
-.crop .sel .nw{left:-3px;top:-3px;border-right:0;border-bottom:0}
-.crop .sel .ne{right:-3px;top:-3px;border-left:0;border-bottom:0}
-.crop .sel .sw{left:-3px;bottom:-3px;border-right:0;border-top:0}
-.crop .sel .se{right:-3px;bottom:-3px;border-left:0;border-top:0}
-.seg{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--muted)}
-.seg span{margin-right:6px}
-.seg button{border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;padding:7px 12px;border-radius:7px;cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .hint{font-size:13px;color:var(--muted);line-height:1.65;margin:0}
 .hint ol{margin:4px 0 0;padding-left:20px}
@@ -149,25 +135,10 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
 
   <!-- 加卡 -->
   <section id="v-add" hidden>
-    <div class="row">
-      <button class="btn" id="photoBtn">📷 影相</button>
-      <button class="btn" id="albumBtn">🖼 相簿揀相</button>
-      <input type="file" id="photo" accept="image/*" capture="environment" hidden>
-      <input type="file" id="album" accept="image/*" hidden>
-    </div>
-    <div id="photoPanel" class="field" hidden>
-      <div class="crop" id="cropBox"><img id="cropImg" alt="揀咗嘅相（只喺手機記憶體，唔會儲存）"><div class="shade" hidden></div><div class="shade" hidden></div><div class="shade" hidden></div><div class="shade" hidden></div><div class="sel" id="cropSel" hidden><i class="nw"></i><i class="ne"></i><i class="sw"></i><i class="se"></i></div></div>
-      <p class="hint" style="text-align:center">拉四個角剪裁大細，拉框中間可以移動</p>
-      <div class="row"><button class="btn primary" id="ocrGo">轉文字</button><button class="btn" id="ocrCancel">收起相片</button></div>
-    </div>
-    <progress id="ocrProg" max="1" value="0" hidden></progress>
-    <div class="status" id="ocrStatus"></div>
     <div class="field"><label class="lab" for="txt">內容</label>
       <textarea id="txt"></textarea></div>
     <div class="row"><button class="btn primary" id="save">儲存</button><button class="btn" id="clearDraft">清除</button></div>
     <div class="status" id="saveStatus"></div>
-    <p class="hint">相片只喺手機入面轉文字，唔會上載，轉完即刻丟棄，唔會儲存。第一次轉要下載辨識資料（約 18MB），之後離線都用得。</p>
-    <p class="hint">想更準：喺 iPhone「相片」App 長按相入面嘅字 →「拷貝」，再貼落上面。</p>
   </section>
 
   <!-- 全部 -->
@@ -216,7 +187,7 @@ progress{width:100%;height:6px;accent-color:var(--accent)}
         </div>
       </div>
     </div>
-    <p class="hint" style="text-align:center">版本 2026.10.21-22</p>
+    <p class="hint" style="text-align:center">版本 2026.10.22-23</p>
   </section>
 </div>
 
@@ -277,7 +248,7 @@ function paint(c){
   $("drawActs").hidden=false;
   if(!c){
     current=null;card.classList.add("empty");
-    $("c-text").textContent="未有卡。去「加卡」影相或者打字，加咗之後呢度會隨機抽一張俾你睇。";
+    $("c-text").textContent="未有卡。去「加卡」打字加卡，加咗之後呢度會隨機抽一張俾你睇。";
     $("again").disabled=true;$("drawEdit").hidden=true;$("drawDel").hidden=true;return;
   }
   current=c.id;
@@ -345,459 +316,14 @@ $("save").onclick=async()=>{
   try{
     const c={id:ZDB.newId(),text,createdAt:Date.now()};
     await ZDB.put(c);await reload();askPersist();
-    $("txt").value="";$("ocrStatus").textContent="";ocrPrefix="";ocrSetValue=null;fitTxt();closePhoto();st.textContent="已儲存。";
+    $("txt").value="";fitTxt();st.textContent="已儲存。";
     if(cards.length===1)paint(c);
   }catch(e){st.className="status err";st.textContent="儲存唔到："+(e&&e.name==="QuotaExceededError"?"手機空間不足。":"再試一次。")}
   $("save").disabled=false;
 };
 function fitTxt(){const t=$("txt");t.style.height="auto";t.style.height=Math.max(180,t.scrollHeight+2)+"px"}
 $("txt").addEventListener("input",fitTxt);
-$("clearDraft").onclick=()=>{ocrPrefix="";ocrSetValue=null;closePhoto();$("txt").value="";$("saveStatus").textContent="";$("ocrStatus").textContent="";fitTxt()};
-
-// ---------- 相片 → 文字（全部喺手機入面做，免費、唔上載） ----------
-const base=new URL("./",location.href).href;
-let ocrWorker=null, ocrLang=null, ocrBusy=false, segMode=false;
-let hLang="chi_tra+eng";   // 橫排用嘅語言；主要係中文嘅頁就唔用英文模型，免得中文字被讀成英文字母
-let photo=null;        // {url, img}：只喺記憶體，收起或者儲存就丟棄
-let crop=null;         // 剪裁範圍（佔張相嘅比例 0–1）
-let ocrPrefix="", ocrSetValue=null;      // 轉文字之前框入面原有嘅字，再轉一次時會換走上次結果
-function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=()=>no(new Error("load"));document.head.append(s)})}
-const stageText={"loading tesseract core":"載入辨識程式","initializing tesseract":"準備緊","loading language traineddata":"載入辨識資料","initializing api":"準備緊","recognizing text":"辨識緊"};
-// 一個 worker 輪流用橫排／直排資料，慳 iPhone 記憶體
-async function getWorker(dir,psm){
-  const lang=hLang;
-  if(!ocrWorker){
-    if(!window.Tesseract)await loadScript("vendor/tesseract/tesseract.min.js");
-    ocrWorker=await Tesseract.createWorker(lang.split("+"),1,{
-      workerPath:base+"vendor/tesseract/worker.min.js",
-      corePath:base+"vendor/tesseract",
-      langPath:base+"vendor/tessdata",
-      workerBlobURL:false,
-      logger:m=>{
-        if(segMode)return;
-        const p=$("ocrProg");p.hidden=false;p.value=m.progress||0;
-        $("ocrStatus").textContent=(stageText[m.status]||"處理緊")+(dir==="v"?"（直排）":"")+"…";
-      },
-    });
-  }else if(ocrLang!==lang){
-    await ocrWorker.reinitialize(lang.split("+"),1);
-  }
-  ocrLang=lang;
-  // 直排用「單一直行文字區」模式
-  await ocrWorker.setParameters({preserve_interword_spaces:"1",tessedit_pageseg_mode:psm||(dir==="v"?"5":"3")});
-  return ocrWorker;
-}
-// 裁剪 + 灰階 + 調校大小；畫完即刻清走
-function srcRect(){
-  const img=photo.img,nw=img.naturalWidth,nh=img.naturalHeight;
-  if(!crop)return{sx:0,sy:0,sw:nw,sh:nh};
-  const sx=Math.max(0,Math.round(crop.x*nw)),sy=Math.max(0,Math.round(crop.y*nh));
-  return{sx,sy,sw:Math.max(1,Math.min(nw-sx,Math.round(crop.w*nw))),sh:Math.max(1,Math.min(nh-sy,Math.round(crop.h*nh)))};
-}
-// 「工作圖」：原相（或者拉框範圍），拉直之後會換成轉正咗嘅畫布
-function makeSrc(){return{el:photo.img,...srcRect()}}
-function toCanvas(src){
-  const img=src.el,{sx,sy,sw,sh}=src;
-  const long=Math.max(sw,sh);
-  const scale=long>2400?2400/long:(long<1600?Math.min(2.5,1600/long):1);
-  const cv=document.createElement("canvas");
-  cv.width=Math.round(sw*scale);cv.height=Math.round(sh*scale);
-  const ctx=cv.getContext("2d",{willReadFrequently:true});
-  ctx.imageSmoothingQuality="high";
-  ctx.drawImage(img,sx,sy,sw,sh,0,0,cv.width,cv.height);
-  binarize(ctx,cv.width,cv.height);
-  removeBlobs(ctx,cv.width,cv.height);
-  return cv;
-}
-// 自適應黑白化（Bradley）：每點同附近平均比較，唔怕相片一邊光一邊暗，字亦唔會斷
-// 刪走大過字好多嘅黑色色塊（陰影邊、紙邊、手指）：逐個連住嘅黑點群組量大細
-function removeBlobs(ctx,w,h,maxSize){
-  const id=ctx.getImageData(0,0,w,h),d=id.data,n=w*h,lab=new Int32Array(n),stack=new Int32Array(n);
-  let next=0;const boxes=[];
-  for(let i=0;i<n;i++){
-    if(lab[i]||d[i<<2]>=128)continue;
-    next++;let sp=0,x0=w,y0=h,x1=0,y1=0,area=0;stack[sp++]=i;lab[i]=next;
-    while(sp){
-      const k=stack[--sp],x=k%w,y=(k-x)/w;area++;
-      if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;
-      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
-        const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=w||yy>=h)continue;
-        const kk=yy*w+xx;if(!lab[kk]&&d[kk<<2]<128){lab[kk]=next;stack[sp++]=kk}
-      }
-    }
-    boxes.push([x1-x0+1,y1-y0+1,area]);
-  }
-  if(maxSize==null){   // 未知字大細：用色塊高度中位數估計
-    const hs=boxes.filter(b=>b[1]>=4&&b[2]>=6).map(b=>Math.max(b[0],b[1])).sort((a,b)=>a-b);
-    if(!hs.length)return;
-    maxSize=Math.max(20,hs[Math.floor(hs.length*.7)]*4);
-  }
-  const kill=new Uint8Array(next+1);let any=false;
-  boxes.forEach((b,i)=>{if(b[0]>maxSize||b[1]>maxSize){kill[i+1]=1;any=true}});
-  if(!any)return;
-  for(let i=0;i<n;i++)if(kill[lab[i]]){const k=i<<2;d[k]=d[k+1]=d[k+2]=255}
-  ctx.putImageData(id,0,0);
-}
-function binarize(ctx,w,h,t=.15){
-  const id=ctx.getImageData(0,0,w,h),d=id.data,n=w*h;
-  const g=new Float32Array(n);
-  for(let i=0;i<n;i++)g[i]=.299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2];
-  const W=w+1,I=new Float64Array(W*(h+1));
-  for(let y=0;y<h;y++){let row=0;for(let x=0;x<w;x++){row+=g[y*w+x];I[(y+1)*W+x+1]=I[y*W+x+1]+row}}
-  const r=Math.max(8,Math.round(Math.max(w,h)/20));
-  for(let y=0;y<h;y++){
-    const y0=Math.max(0,y-r),y1=Math.min(h,y+r+1);
-    for(let x=0;x<w;x++){
-      const x0=Math.max(0,x-r),x1=Math.min(w,x+r+1);
-      const sum=I[y1*W+x1]-I[y0*W+x1]-I[y1*W+x0]+I[y0*W+x0];
-      const n=(x1-x0)*(y1-y0),gv=g[y*w+x];
-      const v=gv*n<sum*(1-t)&&sum/n-gv>18?0:255,k=y*w+x<<2;   // 要比附近暗得夠多先當係墨，平滑位嘅雜點唔要
-      d[k]=d[k+1]=d[k+2]=v;d[k+3]=255;
-    }
-  }
-  ctx.putImageData(id,0,0);
-}
-const CJK="\\u2E80-\\u9FFF\\uF900-\\uFAFF\\uFF00-\\uFFEF\\u3000-\\u303F";
-function tidy(raw){
-  const cjkGap=new RegExp("(["+CJK+"])[ \\t]+(?=["+CJK+"])","g");
-  const paras=raw.replace(/\r/g,"").split(/\n\s*\n/);
-  return paras.map(p=>{
-    const lines=p.split("\n").map(l=>l.replace(cjkGap,"$1").trim()).filter(Boolean);
-    let out="";
-    for(const l of lines){
-      if(!out){out=l;continue}
-      const a=out.slice(-1),b=l[0];
-      const cjk=new RegExp("["+CJK+"]");
-      out+=(cjk.test(a)||cjk.test(b))?l:(a==="-"?(out=out.slice(0,-1),l):" "+l);
-    }
-    // 中文旁邊嘅半形標點轉返全形
-    const full={",":"，",";":"；",":":"：","?":"？","!":"！","(":"（",")":"）"};
-    out=out.replace(/[，、,]+(?=[。！？])/g,"");   // 句號前多餘嘅逗號
-    return out.replace(new RegExp("(["+CJK+"])\\s*([,;:?!()])\\s*","g"),(m,a,p)=>a+full[p])
-              .replace(new RegExp("\\s*([,;:?!()])\\s*(?=["+CJK+"])","g"),(m,p)=>full[p]);
-  }).filter(Boolean).join("\n");
-}
-// 評分：信心度，扣減亂碼特徵（怪符號、夾喺中文之間嘅零碎英文字母）
-function score(text,conf){
-  const s=text.replace(/\s/g,"");if(!s)return 0;
-  const junk=(s.match(new RegExp("[^"+CJK+"A-Za-z0-9.,;:!?'\"()\\-]","g"))||[]).length;
-  const frags=(text.match(/(^|[^A-Za-z])[A-Za-z]{1,2}(?![A-Za-z])/g)||[]).length;
-  const words=(text.match(/[A-Za-z]{3,}/g)||[]).length;
-  const bad=Math.min(1,(junk+2*Math.max(0,frags-words))/s.length);
-  return conf*(1-bad);
-}
-async function recognize(cv,dir,psm){
-  const w=await getWorker(dir,psm);
-  const {data}=await w.recognize(cv,{},{blocks:true});
-  const syms=[];
-  for(const b of data.blocks||[])for(const pa of b.paragraphs)for(const li of pa.lines)for(const wo of li.words)wo.symbols.forEach((sy,i)=>syms.push([sy.text,sy.confidence,i===0]));
-  const text=tidy(data.text||"");
-  return {text,conf:data.confidence||0,score:score(text,data.confidence||0),dir,syms};
-}
-// 估計相片斜咗幾多度：試唔同角度，睇邊個角度令每行（或每直行）最整齊
-function skewAngle(cv,dir){
-  const w=cv.width,h=cv.height,d=cv.getContext("2d").getImageData(0,0,w,h).data;
-  const step=Math.max(1,Math.round(Math.max(w,h)/700)),xs=[],ys=[];
-  // 只用細嘅墨點（字），長直線（紙邊）唔計：檢查附近係咪連續一長條
-  const ink=(x,y)=>x>=0&&y>=0&&x<w&&y<h&&d[(y*w+x)<<2]<128;
-  const L=Math.round(Math.max(w,h)/25);
-  for(let y=0;y<h;y+=step)for(let x=0;x<w;x+=step){
-    if(!ink(x,y))continue;
-    if(ink(x,y-L)&&ink(x,y+L)&&ink(x,y-(L>>1))&&ink(x,y+(L>>1)))continue;
-    if(ink(x-L,y)&&ink(x+L,y)&&ink(x-(L>>1),y)&&ink(x+(L>>1),y))continue;
-    xs.push(x/step);ys.push(y/step);
-  }
-  if(xs.length<300)return 0;
-  const off=Math.ceil((w+h)/step)+2,hist=new Float64Array(off*2);
-  const sharp=deg=>{
-    const a=deg*Math.PI/180,c=Math.cos(a),sn=Math.sin(a);hist.fill(0);
-    for(let i=0;i<xs.length;i++)hist[Math.round(dir==="v"?xs[i]*c+ys[i]*sn:ys[i]*c-xs[i]*sn)+off]++;
-    let v=0;for(let i=0;i<hist.length;i++)v+=hist[i]*hist[i];return v;
-  };
-  let best=0,bv=sharp(0);
-  for(let g=-8;g<=8;g+=.5){const v=sharp(g);if(v>bv){bv=v;best=g}}
-  for(let g=best-.4;g<=best+.4;g+=.1){const v=sharp(g);if(v>bv){bv=v;best=g}}
-  return best;
-}
-function rotated(src,deg){
-  const a=-deg*Math.PI/180,c=Math.abs(Math.cos(a)),sn=Math.abs(Math.sin(a));
-  const sc=Math.min(1,3000/Math.max(src.sw,src.sh));
-  const w=src.sw*sc,h=src.sh*sc,W=Math.round(w*c+h*sn),H=Math.round(w*sn+h*c);
-  const cv=document.createElement("canvas");cv.width=W;cv.height=H;
-  const ctx=cv.getContext("2d");ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);
-  ctx.translate(W/2,H/2);ctx.rotate(a);
-  ctx.drawImage(src.el,src.sx,src.sy,src.sw,src.sh,-w/2,-h/2,w,h);
-  return{el:cv,sx:0,sy:0,sw:W,sh:H,temp:true};
-}
-// 搵出每一行（橫排）或者每一直行（直排）喺原相嘅位置；搵得唔清楚（例如相太斜）就回傳 null
-function segments(cv,dir,src){
-  const w=cv.width,h=cv.height,d=cv.getContext("2d").getImageData(0,0,w,h).data;
-  const across=dir==="v"?w:h,along=dir==="v"?h:w,prof=new Uint32Array(across);
-  // 數「由白轉黑」嘅次數：字會轉好多次，紙邊陰影只係一大嚿
-  if(dir==="v"){for(let x=0;x<w;x++){let prev=false;for(let y=0;y<h;y++){const k=d[(y*w+x)<<2]<128;if(k&&!prev)prof[x]++;prev=k}}}
-  else{for(let y=0;y<h;y++){let prev=false;for(let x=0;x<w;x++){const k=d[(y*w+x)<<2]<128;if(k&&!prev)prof[y]++;prev=k}}}
-  // 門檻：扣除紙邊、陰影等每行都有嘅「底噪」
-  const sorted=Array.from(prof).sort((x,y)=>x-y),lo=sorted[Math.floor(across*.1)],hi=sorted[Math.floor(across*.98)];
-  const thr=Math.max(3,lo+(hi-lo)*.12);let segs=[],st=-1;
-  for(let i=0;i<=across;i++){const ink=i<across&&prof[i]>thr;if(ink&&st<0)st=i;if(!ink&&st>=0){segs.push([st,i]);st=-1}}
-  if(!segs.length)return null;
-  const med=a=>{const s=a.slice().sort((x,y)=>x-y);return s[s.length>>1]};
-  let m=med(segs.map(s=>s[1]-s[0]));
-  // 字入面嘅細縫唔當分行
-  const merged=[segs[0]];
-  for(const sg of segs.slice(1)){const last=merged[merged.length-1];if(sg[0]-last[1]<m*.3)last[1]=sg[1];else merged.push(sg)}
-  segs=merged;m=med(segs.map(s=>s[1]-s[0]));
-  segs=segs.filter(s=>s[1]-s[0]>=m*.4);
-  // 太厚嘅（分唔開嘅幾行）照留，當一個區塊讀；但大部分都分唔開就當失敗
-  if(!segs.length||segs.length>60||(segs.length===1&&m>across*.4)||segs.filter(s=>s[1]-s[0]>m*2.6).length*2>segs.length)return null;
-  // 每行再搵頭尾：只要字嘅部分，唔要延伸到紙邊、背景
-  const ext=([a,b])=>{
-    const th=b-a,fill=new Float32Array(along);
-    for(let j=0;j<along;j++){let n=0;for(let i=a;i<b;i++){const x=dir==="v"?i:j,y=dir==="v"?j:i;if(d[(y*w+x)<<2]<128)n++}fill[j]=n/th}
-    const runs=[];let rs=-1;
-    for(let j=0;j<=along;j++){const t=j<along&&fill[j]>.02&&fill[j]<.75;if(t&&rs<0)rs=j;if(!t&&rs>=0){runs.push([rs,j]);rs=-1}}
-    if(!runs.length)return[0,along];
-    const groups=[[...runs[0],runs[0][1]-runs[0][0]]];
-    for(const r of runs.slice(1)){const g=groups[groups.length-1];if(r[0]-g[1]<th*3){g[1]=r[1];g[2]+=r[1]-r[0]}else groups.push([...r,r[1]-r[0]])}
-    // 保留所有有份量嘅字組（例如一行分兩欄），只去掉兩頭零碎嘢
-    const big=Math.max(...groups.map(g=>g[2])),keep=groups.filter(g=>g[2]>=big*.15);
-    return[Math.max(0,keep[0][0]-th*.5),Math.min(along,keep[keep.length-1][1]+th*.5)];
-  };
-  const k=(dir==="v"?src.sw:src.sh)/across,kl=(dir==="v"?src.sh:src.sw)/along;
-  segs=segs.map(sg=>{const [e0,e1]=ext(sg);const th=sg[1]-sg[0];return[sg[0]*k,sg[1]*k,e0*kl,e1*kl,(th>m*2.6?m:th)*k]});
-  return dir==="v"?segs.reverse():segs;   // 直排由右至左
-}
-const SEG_VARIANTS=[[55,.12],[65,.18],[70,.15],[75,.12],[85,.18]];  // [字大小px, 黑白化門檻]
-// 高質素縮放：一次縮太多 Safari 會失真，所以每次最多縮一半
-function drawScaled(img,sx,sy,sw,sh,W,H){
-  let cur=img,cx=sx,cy=sy,cw=sw,ch=sh;
-  while(cw/2>W&&ch/2>H){
-    const t=document.createElement("canvas");t.width=Math.ceil(cw/2);t.height=Math.ceil(ch/2);
-    const g=t.getContext("2d");g.imageSmoothingQuality="high";g.drawImage(cur,cx,cy,cw,ch,0,0,t.width,t.height);
-    if(cur!==img)cur.width=cur.height=0;
-    cur=t;cx=cy=0;cw=t.width;ch=t.height;
-  }
-  const cv=document.createElement("canvas");cv.width=W;cv.height=H;
-  const ctx=cv.getContext("2d",{willReadFrequently:true});ctx.imageSmoothingQuality="high";
-  ctx.drawImage(cur,cx,cy,cw,ch,0,0,W,H);
-  if(cur!==img)cur.width=cur.height=0;
-  return cv;
-}
-// 切出一行（或一直行），放大到每隻字約 px，再黑白化
-function stripCanvas([a,b,e0,e1,cs],dir,R,px,t){
-  const thick=cs||b-a,pad=thick*.3;
-  let sx,sy,sw,sh;
-  if(dir==="v"){sx=R.sx+Math.max(0,a-pad);sw=Math.min(R.sx+R.sw,R.sx+b+pad)-sx;sy=R.sy+e0;sh=e1-e0}
-  else{sy=R.sy+Math.max(0,a-pad);sh=Math.min(R.sy+R.sh,R.sy+b+pad)-sy;sx=R.sx+e0;sw=e1-e0}
-  const s=Math.min(4,Math.max(.3,px/thick));
-  const cv=drawScaled(R.el,sx,sy,sw,sh,Math.max(1,Math.round(sw*s)),Math.max(1,Math.min(6000,Math.round(sh*s))));
-  const ctx=cv.getContext("2d",{willReadFrequently:true});
-  binarize(ctx,cv.width,cv.height,t);
-  removeBlobs(ctx,cv.width,cv.height,px*2.5);
-  return cv;
-}
-// 對齊兩串字（編輯距離），回傳 A 每個位置對應 B 嘅位置（冇就 -1）
-function alignSyms(A,B){
-  const n=A.length,m=B.length,D=[];
-  for(let i=0;i<=n;i++){D.push(new Uint16Array(m+1));D[i][0]=i}
-  for(let j=0;j<=m;j++)D[0][j]=j;
-  for(let i=1;i<=n;i++)for(let j=1;j<=m;j++)
-    D[i][j]=Math.min(D[i-1][j]+1,D[i][j-1]+1,D[i-1][j-1]+(A[i-1][0]===B[j-1][0]?0:1));
-  const map=new Int32Array(n).fill(-1);let i=n,j=m;
-  while(i>0&&j>0){
-    if(D[i][j]===D[i-1][j-1]+(A[i-1][0]===B[j-1][0]?0:1)){map[i-1]=j-1;i--;j--}
-    else if(D[i][j]===D[i-1][j]+1)i--;else j--;
-  }
-  return map;
-}
-// 綜合所有讀法：揀最可信嗰個做骨幹，其他對齊之後逐隻字投票
-function vote(cands){
-  cands=cands.filter(c=>c.syms.length);
-  if(!cands.length)return{text:"",conf:0};
-  const base=cands.slice().sort((x,y)=>y.conf-x.conf)[0],B=base.syms;
-  const tallies=B.map(()=>({})),starts=new Uint16Array(B.length);
-  for(const c of cands){
-    const map=c===base?B.map((_,i)=>i):alignSyms(B,c.syms);
-    for(let i=0;i<B.length;i++){
-      if(map[i]<0)continue;const [ch,cf,ws]=c.syms[map[i]];
-      tallies[i][ch]=(tallies[i][ch]||0)+cf+20;if(ws)starts[i]++;
-    }
-  }
-  const picks=B.map((_,i)=>{
-    const [ch,tot]=Object.entries(tallies[i]).sort((x,y)=>y[1]-x[1])[0];
-    return{ch,conf:tot/cands.length-20,ws:starts[i]*2>cands.length};
-  });
-  // 頭尾信心低或者係怪符號（多數係紙邊、陰影）就刪走
-  const junk=p=>p.conf<35||/^[_|\[\]{}~^`=<>]+$/.test(p.ch);
-  while(picks.length&&junk(picks[0]))picks.shift();
-  while(picks.length&&junk(picks[picks.length-1]))picks.pop();
-  // 主要係中文嘅行：頭尾零碎英文字母／符號多數係雜訊
-  const isCJK=p=>new RegExp("["+CJK+"]").test(p.ch);
-  if(picks.filter(isCJK).length>=picks.length*.6){
-    const stray=p=>!isCJK(p)&&/^[A-Za-z0-9"'`~^|\\/_\-“”‘’*#]+$/.test(p.ch);
-    while(picks.length&&stray(picks[picks.length-1]))picks.pop();
-    while(picks.length&&stray(picks[0]))picks.shift();
-  }
-  let text="";
-  for(const p of picks){
-    // 英文字之間保留空格
-    if(text&&p.ws&&/[A-Za-z0-9]$/.test(text)&&/^[A-Za-z0-9]/.test(p.ch))text+=" ";
-    text+=p.ch;
-  }
-  const conf=cands.reduce((t,c)=>t+c.conf,0)/cands.length;
-  return{text:tidy(text),conf};
-}
-// 逐行精讀：每行用幾種字大小／黑白化讀，最後投票
-async function refine(segs,dir,R,step){
-  const cands=segs.map(()=>[]);
-  for(let i=0;i<segs.length;i++){
-    step(i,segs.length);
-    const block=segs[i][4]&&segs[i][1]-segs[i][0]>segs[i][4]*2.6;   // 分唔開嘅幾行
-    for(const [px,t] of SEG_VARIANTS){
-      const cv=stripCanvas(segs[i],dir,R,px,t);
-      cands[i].push(await recognize(cv,dir,dir==="v"?"5":(block?"3":"7")));
-      cv.width=cv.height=0;
-    }
-  }
-  return cands.map(vote);
-}
-// 揀相 → 顯示預覽，四角可以剪裁
-function drawCrop(){
-  const sel=$("cropSel"),img=$("cropImg"),shades=document.querySelectorAll("#cropBox .shade");
-  if(!crop||!img.clientWidth){sel.hidden=true;shades.forEach(s=>s.hidden=true);return}
-  const W=img.clientWidth,H=img.clientHeight,x=crop.x*W,y=crop.y*H,w=crop.w*W,h=crop.h*H;
-  Object.assign(sel.style,{left:x+"px",top:y+"px",width:w+"px",height:h+"px"});
-  sel.hidden=false;
-  // 框外四邊變暗：上、下、左、右
-  [[0,0,W,y],[0,y+h,W,H-y-h],[0,y,x,h],[x+w,y,W-x-w,h]].forEach(([l,t,ww,hh],i)=>{
-    Object.assign(shades[i].style,{left:l+"px",top:t+"px",width:Math.max(0,ww)+"px",height:Math.max(0,hh)+"px"});shades[i].hidden=false;
-  });
-}
-addEventListener("resize",drawCrop);
-function openPhoto(inp){
-  const f=inp.files[0];inp.value="";if(!f||ocrBusy)return;
-  closePhoto();
-  const url=URL.createObjectURL(f);
-  const img=$("cropImg");img.src=url;photo={url,img};crop={x:0,y:0,w:1,h:1};$("cropSel").hidden=true;
-  // 上一張相轉出嚟、未改過嘅字會被新結果取代；自己打或者改過嘅字就保留
-  const cur=$("txt").value.trim();
-  if(cur!==ocrSetValue)ocrPrefix=cur;
-
-  $("photoPanel").hidden=false;$("ocrStatus").className="status";
-  $("ocrStatus").textContent="剪走唔要嘅部分（例如陰影、手寫字），淨係留低想轉嘅字，會準好多。";
-  img.onload=()=>{drawCrop();$("photoPanel").scrollIntoView({block:"nearest",behavior:"smooth"})};
-  img.onerror=()=>{closePhoto();$("ocrStatus").className="status err";$("ocrStatus").textContent="開唔到呢張相，換一張試下。"};
-}
-function closePhoto(){
-  if(photo){URL.revokeObjectURL(photo.url);photo.img.removeAttribute("src");photo=null}
-  crop=null;drawCrop();$("photoPanel").hidden=true;
-}
-async function runOcr(){
-  if(!photo||ocrBusy)return;
-  const st=$("ocrStatus"),prog=$("ocrProg");st.className="status";
-  ocrBusy=true;for(const id of ["photoBtn","albumBtn","ocrGo","ocrCancel"])$(id).disabled=true;
-  st.textContent="準備緊…";prog.hidden=false;prog.value=0;
-  let cv=null,src=null,skipped=0;
-  hLang="chi_tra+eng";
-  try{
-    src=makeSrc();cv=toCanvas(src);
-    let best=await recognize(cv,"h");   // 一律當橫排
-    // 第二步：逐行精讀
-    let segs=null;
-    if(best.text){
-      const ang=skewAngle(cv,best.dir);
-      if(Math.abs(ang)>=.3){cv.width=cv.height=0;src=rotated(src,ang);cv=toCanvas(src)}
-      segs=segments(cv,best.dir,src);
-    }
-    if(segs){
-      const t=best.text.replace(/\s/g,""),cjk=(t.match(new RegExp("["+CJK+"]","g"))||[]).length;
-      const latin=(t.match(/[A-Za-z]/g)||[]).length;
-      if(cjk>=(cjk+latin)*.75)hLang="chi_tra";   // 中文字遠多過英文字母
-      segMode=true;
-      const res=await refine(segs,best.dir,src,(i,n)=>{prog.value=i/n;st.textContent="精讀緊… "+Math.round(100*i/n)+"%"});
-      segMode=false;
-      const out=[];let confSum=0;
-      // 明顯短過最長嗰行 = 段落／項目完結，保留換行；否則係同一段（書本自動換行）
-      const lens=segs.map(sg=>sg[3]-sg[2]),maxLen=Math.max(...lens),minStart=Math.min(...segs.map(sg=>sg[2]));
-      // 下一行有縮排 = 新段落
-      const indented=i=>i<segs.length&&segs[i][2]-minStart>(segs[i][4]||segs[i][1]-segs[i][0])*.8;
-      // 信心太低嘅行（多數係手寫字、陰影、污漬）唔要
-      res.forEach((r,i)=>{
-        if(!r.text)return;
-        if(score(r.text,r.conf)<35){skipped++;return}
-        out.push(r.text+(lens[i]<maxLen*.9||indented(i+1)?"\n\n":""));confSum+=r.conf;
-      });
-      const conf=out.length?confSum/out.length:0;
-      if(out.length&&(conf>=best.conf-15||skipped)){   // 逐行精讀通常較準，除非明顯差咗
-        const text=tidy(out.join("\n")).replace(/^[，、。：；！？,.:;\s]+/,"");
-        best={...best,text,conf,score:score(text,conf)};
-      }
-    }
-    if(!best.text){st.className="status err";st.textContent="睇唔到文字。試下剪裁淨係留低文字部分，或者影清啲、正啲。";}
-    else{
-      $("txt").value=(ocrPrefix?ocrPrefix+"\n\n":"")+best.text;
-      ocrSetValue=$("txt").value.trim();fitTxt();
-      $("txt").scrollIntoView({block:"nearest",behavior:"smooth"});
-      const how=skipped?"，略過咗 "+skipped+" 行睇唔清嘅字（可能係手寫字或者陰影）":"";
-      st.textContent=best.score<55
-        ?"轉好咯"+how+"，但好多字可能唔啱。可以剪細啲範圍，再撳「再轉一次」。"
-        :"轉好咯"+how+"，睇一睇、改一改再儲存。唔啱可以改範圍再轉。";
-      $("ocrGo").textContent="再轉一次";
-    }
-  }catch(e){
-    st.className="status err";st.textContent="轉唔到，再試一次或者手打。";
-    segMode=false;
-    if(ocrWorker){try{await ocrWorker.terminate()}catch(_){}ocrWorker=null;ocrLang=null}
-  }finally{
-    if(cv){cv.width=0;cv.height=0;cv=null}
-    if(src&&src.temp){src.el.width=src.el.height=0}src=null;
-    prog.hidden=true;ocrBusy=false;
-    for(const id of ["photoBtn","albumBtn","ocrGo","ocrCancel"])$(id).disabled=false;
-  }
-}
-// 剪裁：拉四角改大細，拉中間移動，喺框外拉就重新畫過
-(()=>{
-  const box=$("cropBox");let drag=null;
-  const pos=e=>{const r=$("cropImg").getBoundingClientRect();return{x:Math.min(Math.max(e.clientX-r.left,0),r.width)/r.width,y:Math.min(Math.max(e.clientY-r.top,0),r.height)/r.height,W:r.width,H:r.height}};
-  box.addEventListener("pointerdown",e=>{
-    if(!photo||ocrBusy||!crop)return;
-    const p=pos(e),c=crop,gx=36/p.W,gy=36/p.H;   // 角位感應範圍約 36px
-    const nearL=Math.abs(p.x-c.x)<gx,nearR=Math.abs(p.x-(c.x+c.w))<gx,nearT=Math.abs(p.y-c.y)<gy,nearB=Math.abs(p.y-(c.y+c.h))<gy;
-    let mode;
-    if((nearL||nearR)&&(nearT||nearB))mode=(nearT?"n":"s")+(nearL?"w":"e");
-    else if(p.x>c.x&&p.x<c.x+c.w&&p.y>c.y&&p.y<c.y+c.h)mode="move";
-    else mode="new";
-    drag={mode,p0:p,c0:{...c}};
-    box.setPointerCapture(e.pointerId);e.preventDefault();
-  });
-  box.addEventListener("pointermove",e=>{
-    if(!drag)return;
-    const p=pos(e),{mode,p0,c0}=drag,mw=40/p.W,mh=40/p.H;   // 最細 40px
-    let x0=c0.x,y0=c0.y,x1=c0.x+c0.w,y1=c0.y+c0.h;
-    if(mode==="move"){
-      const dx=Math.min(Math.max(p.x-p0.x,-x0),1-x1),dy=Math.min(Math.max(p.y-p0.y,-y0),1-y1);
-      x0+=dx;x1+=dx;y0+=dy;y1+=dy;
-    }else if(mode==="new"){
-      x0=Math.min(p0.x,p.x);x1=Math.max(p0.x,p.x);y0=Math.min(p0.y,p.y);y1=Math.max(p0.y,p.y);
-      if(x1-x0<mw||y1-y0<mh)return;
-    }else{
-      if(mode.includes("w"))x0=Math.min(p.x,x1-mw);
-      if(mode.includes("e"))x1=Math.max(p.x,x0+mw);
-      if(mode.includes("n"))y0=Math.min(p.y,y1-mh);
-      if(mode.includes("s"))y1=Math.max(p.y,y0+mh);
-    }
-    crop={x:Math.max(0,x0),y:Math.max(0,y0),w:Math.min(1,x1)-Math.max(0,x0),h:Math.min(1,y1)-Math.max(0,y0)};
-    drawCrop();
-  });
-  const end=()=>{drag=null};
-  box.addEventListener("pointerup",end);box.addEventListener("pointercancel",end);
-})();
-$("photoBtn").onclick=()=>$("photo").click();
-$("albumBtn").onclick=()=>$("album").click();
-$("photo").onchange=()=>{openPhoto($("photo"));$("ocrGo").textContent="轉文字"};
-$("album").onchange=()=>{openPhoto($("album"));$("ocrGo").textContent="轉文字"};
-$("ocrGo").onclick=runOcr;
-$("ocrCancel").onclick=()=>{closePhoto();$("ocrStatus").textContent=""};
+$("clearDraft").onclick=()=>{$("txt").value="";$("saveStatus").textContent="";fitTxt()};
 
 // ---------- 備份 ----------
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
@@ -917,6 +443,8 @@ $("testBtn").onclick=async()=>{
 };
 
 // ---------- 啟動 ----------
+// 已移除影相轉文字：刪走之前文字辨識程式存喺手機嘅辨識資料
+try{indexedDB.deleteDatabase("keyval-store")}catch(e){}
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("sw.js").catch(()=>{});
   navigator.serviceWorker.addEventListener("message",e=>{

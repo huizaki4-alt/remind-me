@@ -3,18 +3,16 @@
 記低想記住嘅嘢，隨機抽一張重溫。可以加到 iPhone 主畫面，好似 app 咁用，離線都用得。
 
 - **卡存喺手機本地**（IndexedDB），唔經任何伺服器；「設定」頁可以匯出／匯入備份（.json）
-- **影相／相簿揀相 → 轉文字**：用 Tesseract.js 喺手機入面辨識，相片唔上載、轉完即刻丟棄
 - **羊皮紙卡**：冇橫線、冇日期
 - **抽卡頁同全部頁都可以修改、刪除**
 - **不定時推送隨機卡通知**：由呢個 repo 嘅 GitHub Actions 免費發送
-- **全程免費**：GitHub Pages、GitHub Actions、文字辨識都喺免費範圍內，唔使信用卡
+- **全程免費**：GitHub Pages、GitHub Actions 都喺免費範圍內，唔使信用卡
 
 ## 檔案
 
 | 位置 | 用途 |
 | --- | --- |
 | `docs/` | 成個 app（GitHub Pages 由呢度發佈） |
-| `docs/vendor/` | 文字辨識程式同中英文辨識資料（自己 host，唔靠第三方 CDN） |
 | `push/send.js` | 發推送嘅小程式 |
 | `.github/workflows/random-card.yml` | 定時隨機推送 |
 
@@ -72,11 +70,9 @@ GitHub 免費嘅定時工作好唔準，有時幾個鐘都唔運行。可以用�
 
 - GitHub Pages、public repo 嘅 Actions：免費、冇上限
 - private repo 嘅 Actions：每月 2000 分鐘免費，呢個 workflow 每月最多大約用 1400 分鐘；冇設付款方式嘅話，超額只會停，唔會收錢
-- 文字辨識喺手機入面運行，冇 API 費用
 
 ## 注意
 
 - 卡只存喺嗰部手機。刪除 app、或者喺 Safari 清除網站資料，卡會冇咗，**記得定期匯出備份**
 - 如果收唔到通知：返去「設定」再撳「開啟通知」，複製新設定碼更新 `PUSH_CONFIG`
 - public repo 如果 60 日冇任何改動，GitHub 會暫停定時 workflow；去「Actions」撳「Enable workflow」就會恢復
-- 文字辨識第一次要下載約 16MB 資料，之後會快取。印刷字辨識效果最好，手寫字唔準；記得轉完核對

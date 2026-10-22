@@ -1,7 +1,7 @@
 // Service worker：離線快取 + 收推送時隨機抽一張卡做通知
 importScripts("./db.js");
 
-const VERSION = "v22";
+const VERSION = "v23";
 const SHELL = "zhishi-shell-" + VERSION;
 const RUNTIME = "zhishi-runtime";
 const SHELL_FILES = [
@@ -16,6 +16,9 @@ self.addEventListener("install", e => {
 self.addEventListener("activate", e => {
   e.waitUntil((async () => {
     for (const k of await caches.keys()) if (k.startsWith("zhishi-shell-") && k !== SHELL) await caches.delete(k);
+    // 已移除影相轉文字：清走之前快取嘅辨識程式同資料
+    const rt = await caches.open(RUNTIME);
+    for (const r of await rt.keys()) if (r.url.includes("/vendor/")) await rt.delete(r);
     await self.clients.claim();
   })());
 });
@@ -35,14 +38,6 @@ self.addEventListener("fetch", e => {
       caches.open(SHELL).then(c => c.put("./index.html", copy));
       return res;
     }).catch(() => caches.match("./index.html")));
-    return;
-  }
-  // 文字辨識檔案好大又唔會變：有快取就用快取
-  if (sameOrigin && url.pathname.includes("/vendor/")) {
-    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => {
-      if (res.ok) { const copy = res.clone(); caches.open(RUNTIME).then(c => c.put(req, copy)); }
-      return res;
-    })));
     return;
   }
   // 其他：先俾快取，背景更新
