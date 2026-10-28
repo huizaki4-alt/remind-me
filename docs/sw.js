@@ -1,16 +1,23 @@
 // Service worker：離線快取 + 收推送時隨機抽一張卡做通知
 importScripts("./db.js");
 
-const VERSION = "v23";
+const VERSION = "v24";
 const SHELL = "zhishi-shell-" + VERSION;
 const RUNTIME = "zhishi-runtime";
 const SHELL_FILES = [
   "./", "./index.html", "./db.js", "./manifest.webmanifest", "./bg.svg?v=town2", "./scroll-cap-l.svg?v=3", "./scroll-cap-r.svg?v=3", "./scroll-mid.svg?v=3",
   "./icons/apple-touch-icon.png", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/badge-96.png",
 ];
+const FONT_CSS = "https://fonts.googleapis.com/css2?family=Yuji+Syuku&family=Yusei+Magic&family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap";
 
 self.addEventListener("install", e => {
-  e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
+  e.waitUntil((async () => {
+    const c = await caches.open(SHELL);
+    await c.addAll(SHELL_FILES.map(u => new Request(u, { cache: "reload" })));
+    // 字體清單都預先存低（失敗唔影響安裝）
+    try { await (await caches.open(RUNTIME)).add(new Request(FONT_CSS, { mode: "no-cors" })); } catch (err) {}
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener("activate", e => {
@@ -33,11 +40,18 @@ self.addEventListener("fetch", e => {
 
   // 頁面本身：先試網絡（有更新就攞新版），斷網用快取
   if (req.mode === "navigate") {
-    e.respondWith(fetch(req, { cache: "no-cache" }).then(res => {   // 有網就一定問伺服器攞最新版
-      const copy = res.clone();
-      caches.open(SHELL).then(c => c.put("./index.html", copy));
+    // 有網就攞最新版；網絡 3 秒都未有回應（訊號弱）或者離線，就即刻用手機入面存咗嘅版本
+    const net = fetch(req.url, { cache: "no-cache", credentials: "same-origin" }).then(res => {
+      if (res.ok) { const copy = res.clone(); caches.open(SHELL).then(c => c.put("./index.html", copy)); }
       return res;
-    }).catch(() => caches.match("./index.html")));
+    });
+    net.catch(() => {});   // 用咗快取之後網絡先失敗，唔使報錯
+    const cached = () => caches.match("./index.html");
+    e.respondWith(
+      Promise.race([net, new Promise(r => setTimeout(r, 3000))])
+        .then(res => res || cached().then(hit => hit || net))
+        .catch(() => cached())
+    );
     return;
   }
   // 其他：先俾快取，背景更新
