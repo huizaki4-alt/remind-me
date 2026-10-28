@@ -50,6 +50,7 @@ nav,.panel,.item{box-shadow:inset 0 0 0 1px rgba(0,0,0,.35),0 4px 14px rgba(0,0,
 .item .b button{color:#E9C77A!important}
 h2{font-family:var(--f-ui);color:#F1CF7A;letter-spacing:.06em}
 h2{font-size:15px;margin:0}
+.offline{display:inline-block;margin-right:8px;padding:1px 8px;border-radius:9px;font-size:12px;background:#6b5a3a;color:#FBF1DA;border:1px solid var(--line)}
 .count{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 nav{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:4px;position:sticky;top:env(safe-area-inset-top,0px);z-index:2}
 nav button{flex:1;border:0;background:none;color:var(--muted);font:inherit;font-weight:500;padding:8px 4px;border-radius:7px;cursor:pointer}
@@ -112,7 +113,7 @@ textarea.code{min-height:90px;font-family:ui-monospace,Menlo,monospace;font-size
 <body>
 <div class="bg" aria-hidden="true"></div>
 <div class="wrap">
-  <header><h1>知識抽卡</h1><span class="count" id="count"></span></header>
+  <header><h1>知識抽卡</h1><span class="count"><span class="offline" id="offline" hidden>離線</span><span id="count"></span></span></header>
   <nav role="tablist">
     <button role="tab" id="tab-draw" aria-selected="true">抽卡</button>
     <button role="tab" id="tab-add" aria-selected="false">加卡</button>
@@ -187,7 +188,7 @@ textarea.code{min-height:90px;font-family:ui-monospace,Menlo,monospace;font-size
         </div>
       </div>
     </div>
-    <p class="hint" style="text-align:center">版本 2026.10.22-23</p>
+    <p class="hint" style="text-align:center">版本 2026.10.28-24</p>
   </section>
 </div>
 
@@ -452,6 +453,9 @@ if("serviceWorker" in navigator){
   });
 }
 (async()=>{
+  // 離線提示 + 要求系統長期保留資料（唔好自動清走）
+  const net=()=>{$("offline").hidden=navigator.onLine};net();addEventListener("online",net);addEventListener("offline",net);
+  askPersist();
   try{await reload()}catch(e){$("c-text").textContent="讀唔到本地資料。";return}
   const params=new URLSearchParams(location.search);
   const id=params.get("card");
